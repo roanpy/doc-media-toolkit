@@ -1,0 +1,65 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="112" y1="64" x2="1472" y2="832" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#223246"/>
+      <stop offset="0.5" stop-color="#111A25"/>
+      <stop offset="1" stop-color="#09111A"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="250" y1="202" x2="1284" y2="764" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0F1722"/>
+      <stop offset="1" stop-color="#101B28"/>
+    </linearGradient>
+    <linearGradient id="doc" x1="302" y1="210" x2="756" y2="690" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F7FAFF"/>
+      <stop offset="1" stop-color="#CFD8E6"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="332" y1="326" x2="846" y2="608" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFB357"/>
+      <stop offset="0.55" stop-color="#FF6D1F"/>
+      <stop offset="1" stop-color="#E84A1A"/>
+    </linearGradient>
+    <linearGradient id="photo" x1="318" y1="592" x2="548" y2="782" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2AB5F7"/>
+      <stop offset="1" stop-color="#1F66FF"/>
+    </linearGradient>
+    <linearGradient id="video" x1="562" y1="564" x2="852" y2="804" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFC72C"/>
+      <stop offset="1" stop-color="#FF8D1F"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="24" y="24" width="1552" height="852" rx="44" fill="url(#bg)"/>
+  <rect x="24" y="24" width="1552" height="852" rx="44" stroke="#39506A" stroke-opacity="0.48" stroke-width="4"/>
+
+  <rect x="92" y="92" width="1416" height="716" rx="36" fill="url(#panel)"/>
+  <rect x="92" y="92" width="1416" height="716" rx="36" stroke="#2C4054" stroke-width="2"/>
+
+  <g opacity="0.9">
+    <rect x="210" y="168" width="548" height="636" rx="86" fill="url(#doc)"/>
+    <rect x="210" y="168" width="548" height="636" rx="86" stroke="#E6EEF8" stroke-opacity="0.18" stroke-width="6"/>
+    <rect x="288" y="252" width="246" height="22" rx="11" fill="#8FA3BC"/>
+    <rect x="288" y="294" width="354" height="26" rx="13" fill="#30445C" fill-opacity="0.84"/>
+    <rect x="288" y="340" width="268" height="18" rx="9" fill="#B9C8D9"/>
+    <path d="M234 486L704 340C731.291 331.518 760.258 346.775 768.74 374.066L792.707 451.18C801.188 478.471 785.931 507.438 758.641 515.92L288.64 662.231C261.35 670.713 232.383 655.456 223.901 628.165L199.935 551.051C191.453 523.761 206.71 494.794 234 486Z" fill="url(#accent)"/>
+    <rect x="278" y="580" width="232" height="164" rx="42" fill="url(#photo)"/>
+    <circle cx="338" cy="632" r="16" fill="#E8F6FF"/>
+    <path d="M310 700L370 646L416 686L454 660L480 700H310Z" fill="#D7EEFF"/>
+    <rect x="528" y="556" width="254" height="182" rx="48" fill="url(#video)"/>
+    <path d="M630 600C630 591.507 639.504 586.438 646.599 591.184L715.228 637.105C721.551 641.336 721.551 650.664 715.228 654.895L646.599 700.816C639.504 705.562 630 700.493 630 692V600Z" fill="#FFF8EE"/>
+  </g>
+
+  <g opacity="0.95">
+    <text x="914" y="286" fill="#FF9D45" font-family="Arial" font-size="28" font-weight="700" letter-spacing="0.18em">DOC MEDIA TOOLKIT</text>
+    <text x="914" y="370" fill="#F7FAFF" font-family="Arial" font-size="74" font-weight="700">文档压缩水印小工具</text>
+    <text x="914" y="432" fill="#AABACC" font-family="Arial" font-size="30" font-weight="500">Document Compression &amp; Watermark Toolkit</text>
+
+    <rect x="914" y="504" width="468" height="74" rx="22" fill="#0F1925" stroke="#30465D" stroke-width="2"/>
+    <text x="948" y="552" fill="#F7FAFF" font-family="Arial" font-size="30" font-weight="700">文档及媒体水印导出</text>
+
+    <rect x="914" y="606" width="468" height="74" rx="22" fill="#0F1925" stroke="#30465D" stroke-width="2"/>
+    <text x="948" y="654" fill="#F7FAFF" font-family="Arial" font-size="30" font-weight="700">文档及媒体动态压缩</text>
+
+    <text x="914" y="742" fill="#AABACC" font-family="Arial" font-size="24" font-weight="500">支持 DOCX / PDF / PPTX / 图片 / 视频</text>
+    <text x="914" y="780" fill="#AABACC" font-family="Arial" font-size="24" font-weight="500">统一水印、动态压缩、批量处理与打包发布</text>
+  </g>
+</svg>

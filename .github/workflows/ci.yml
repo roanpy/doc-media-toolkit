@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: "3.10"
+          - os: ubuntu-latest
+            python: "3.13"
+          - os: macos-14
+            python: "3.12"
+          - os: windows-latest
+            python: "3.12"
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install Linux GUI runtime
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1
+      - run: python -m pip install -e ".[dev]"
+      - run: ruff check src tests scripts
+      - run: ruff format --check src tests scripts
+      - name: Run tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+          PPTX_TOOLS_LANG: zh
+          LANGUAGE: zh_CN
+          LC_ALL: C.UTF-8
+          LANG: C.UTF-8
+        run: python scripts/run_tests_isolated.py
+
+  video-e2e:
+    name: Video E2E / Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: python -m pip install -e ".[dev]"
+      - run: ruff format --check src tests scripts
+      - name: Run required video E2E tests
+        run: python -m unittest tests.test_video_manager_e2e -v

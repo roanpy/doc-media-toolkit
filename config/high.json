@@ -1,0 +1,84 @@
+{
+  "render_limits": {
+    "max_output_height": 1080,
+    "max_long_edge": 1920
+  },
+  "height_floor_rules": [
+    {
+      "min_area_ratio": 0.45,
+      "min_width_ratio": 0.78,
+      "min_height_ratio": 0.78,
+      "min_height": 1080
+    },
+    {
+      "min_area_ratio": 0.12,
+      "min_width_ratio": 0.5,
+      "min_height_ratio": 0.5,
+      "min_height": 720
+    },
+    {
+      "min_area_ratio": 0.0,
+      "min_width_ratio": 0.0,
+      "min_height_ratio": 0.0,
+      "min_height": 480
+    }
+  ],
+  "audio_rules": {
+    "min_kbps": 64,
+    "max_kbps": 192,
+    "rounding_step_kbps": 32,
+    "tiers": [
+      {
+        "min_area_ratio": 0.45,
+        "min_width_ratio": 0.78,
+        "min_height_ratio": 0.78,
+        "target_kbps": 192
+      },
+      {
+        "min_area_ratio": 0.12,
+        "min_width_ratio": 0.0,
+        "min_height_ratio": 0.0,
+        "target_kbps": 160
+      },
+      {
+        "min_area_ratio": 0.06,
+        "min_width_ratio": 0.0,
+        "min_height_ratio": 0.0,
+        "target_kbps": 128
+      },
+      {
+        "min_area_ratio": 0.0,
+        "min_width_ratio": 0.0,
+        "min_height_ratio": 0.0,
+        "target_kbps": 96
+      }
+    ],
+    "pressure_adjustments": [
+      {
+        "below_ratio": 0.5,
+        "reduce_by_kbps": 32
+      },
+      {
+        "below_ratio": 0.32,
+        "reduce_by_kbps": 32
+      }
+    ]
+  },
+  "bitrate_ladder": {
+    "480": {
+      "max_height": 480,
+      "min_video_kbps": 700,
+      "best_video_kbps": 1500
+    },
+    "720": {
+      "max_height": 720,
+      "min_video_kbps": 1700,
+      "best_video_kbps": 3800
+    },
+    "1080": {
+      "max_height": 1080,
+      "min_video_kbps": 3200,
+      "best_video_kbps": 6500
+    }
+  }
+}

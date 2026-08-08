@@ -1,0 +1,224 @@
+name: Build Release Artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_platform:
+        description: "Platforms to build."
+        required: true
+        default: "windows"
+        type: choice
+        options:
+          - windows
+          - all
+      release_tag:
+        description: "Optional release tag. Leave blank to only build artifacts."
+        required: false
+        type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  MACOSX_DEPLOYMENT_TARGET: "13.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.build_platform == 'windows' && '{"include":[{"os":"windows-2025-vs2026","platform":"windows-x64"}]}' || '{"include":[{"os":"macos-15-intel","platform":"macos-x64"},{"os":"macos-14","platform":"macos-arm64"},{"os":"windows-2025-vs2026","platform":"windows-x64"}]}') }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install FFmpeg and Poppler on macOS
+        if: runner.os == 'macOS'
+        env:
+          # GitHub's macOS images may contain an untrusted optional tap. Keep
+          # the runner's formula index and bypass that unrelated tap gate so
+          # the official Homebrew ffmpeg formula can be installed.
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_REQUIRE_TAP_TRUST: "1"
+        run: brew install ffmpeg poppler
+
+      - name: Install Poppler on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '26.02.0-0'
+          $assetName = "Release-$version.zip"
+          $expectedSha256 = '993e4a94376ed712fafc7058d724ea0b943d118bbd2305cd9ed55174eb85cda5'
+          $downloadUrl = "https://github.com/oschwartz10612/poppler-windows/releases/download/v$version/$assetName"
+          $zipPath = Join-Path $env:RUNNER_TEMP $assetName
+          $extractPath = Join-Path $env:RUNNER_TEMP 'poppler-windows'
+          Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
+          $actualSha256 = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualSha256 -ne $expectedSha256) { throw "Poppler archive checksum mismatch: $actualSha256" }
+          Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+          $pdfimages = Get-ChildItem $extractPath -Recurse -Filter pdfimages.exe | Select-Object -First 1
+          if (-not $pdfimages) { throw 'Poppler pdfimages.exe was not found after installation.' }
+          $pdfimages.Directory.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          & $pdfimages.FullName -v
+
+      - name: Use FFmpeg essentials on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '8.1.2'
+          $assetName = "ffmpeg-$version-essentials_build.zip"
+          $expectedSha256 = 'db580001caa24ac104c8cb856cd113a87b0a443f7bdf47d8c12b1d740584a2ec'
+          $downloadUrl = "https://github.com/GyanD/codexffmpeg/releases/download/$version/$assetName"
+          $zipPath = Join-Path $env:RUNNER_TEMP $assetName
+          $extractPath = Join-Path $env:RUNNER_TEMP 'ffmpeg-essentials'
+          Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
+          $actualSha256 = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualSha256 -ne $expectedSha256) { throw "FFmpeg archive checksum mismatch: $actualSha256" }
+          Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+          $ffmpeg = Get-ChildItem $extractPath -Recurse -Filter ffmpeg.exe | Where-Object { $_.Directory.Name -eq 'bin' } | Select-Object -First 1
+          $ffprobe = Get-ChildItem $extractPath -Recurse -Filter ffprobe.exe | Where-Object { $_.Directory.Name -eq 'bin' } | Select-Object -First 1
+          if (-not $ffmpeg -or -not $ffprobe) { throw 'Unable to locate ffmpeg.exe / ffprobe.exe in essentials build.' }
+          "PPTX_TOOLS_FFMPEG=$($ffmpeg.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PPTX_TOOLS_FFPROBE=$($ffprobe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[build,dev]"
+
+      - name: Lint Python modules
+        run: ruff check src tests scripts
+
+      - name: Check Python formatting
+        run: ruff format --check src tests scripts
+
+      - name: Run tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+          # Exercise the product's documented first-launch language. Tests
+          # that cover Chinese use explicit per-test overrides.
+          PPTX_TOOLS_LANG: en
+          PPTX_VIDEO_COMPACTOR_LANG: en
+          PPTX_OUTPUT_WATERMARK_LANG: en
+        run: python scripts/run_tests_isolated.py
+
+      - name: Generate application icons
+        run: python scripts/prepare_icons.py
+
+      - name: Compile Python modules
+        run: python -m py_compile pptx_tools_cli.py pptx_tools_gui.py scripts/build_standalone.py scripts/check_public_safety.py scripts/prepare_icons.py src/pptx_tools/cli.py src/pptx_tools/gui.py
+
+      - name: Check public safety
+        run: python scripts/check_public_safety.py
+
+      - name: Build macOS GUI app
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p release-assets
+          python scripts/build_standalone.py --gui --clean --target-platform macos --bundle-ffmpeg --require-ffmpeg-bundle --dmg --dmg-output "release-assets/Doc-Media-Toolkit-${{ matrix.platform }}.dmg" --name "Doc Media Toolkit"
+          test -x "dist/Doc Media Toolkit.app/Contents/Frameworks/ffmpeg"
+          test -x "dist/Doc Media Toolkit.app/Contents/Frameworks/ffprobe"
+          codesign --verify --deep --strict "dist/Doc Media Toolkit.app"
+          verified=0
+          for attempt in 1 2 3; do
+            if hdiutil verify "release-assets/Doc-Media-Toolkit-${{ matrix.platform }}.dmg"; then
+              verified=1
+              break
+            fi
+            sleep 2
+          done
+          test "$verified" = 1
+          QT_QPA_PLATFORM=offscreen "dist/Doc Media Toolkit.app/Contents/MacOS/Doc Media Toolkit" >"$RUNNER_TEMP/gui-smoke.log" 2>&1 &
+          app_pid=$!
+          sleep 5
+          kill -0 "$app_pid"
+          kill "$app_pid"
+          wait "$app_pid" || true
+          ditto -c -k --sequesterRsrc --keepParent "dist/Doc Media Toolkit.app" "release-assets/Doc-Media-Toolkit-${{ matrix.platform }}.zip"
+
+      - name: Build macOS CLI
+        if: runner.os == 'macOS'
+        run: |
+          python scripts/build_standalone.py --cli --clean --onefile --bundle-ffmpeg --require-ffmpeg-bundle --name "Doc Media Toolkit"
+          tar -C dist -czf "release-assets/Doc-Media-Toolkit-cli-${{ matrix.platform }}.tar.gz" "Doc Media Toolkit"
+
+      - name: Build Windows GUI executable
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release-assets | Out-Null
+          python scripts/build_standalone.py --windows-onefile --clean --bundle-ffmpeg --require-ffmpeg-bundle --name "Doc Media Toolkit"
+          if (-not (Test-Path "dist/Doc Media Toolkit.exe")) { throw 'Windows executable is missing.' }
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          $process = Start-Process -FilePath "dist/Doc Media Toolkit.exe" -PassThru
+          Start-Sleep -Seconds 12
+          if ($process.HasExited) { throw "GUI smoke test exited early with code $($process.ExitCode)." }
+          Stop-Process -Id $process.Id -Force
+          Copy-Item "dist/Doc Media Toolkit.exe" "release-assets/Doc-Media-Toolkit-${{ matrix.platform }}.exe"
+
+      - name: Write macOS checksums
+        if: runner.os == 'macOS'
+        run: |
+          cd release-assets
+          shasum -a 256 * > "SHA256SUMS-${{ matrix.platform }}.txt"
+
+      - name: Write Windows checksums
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-ChildItem release-assets -File | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          } | Set-Content "release-assets/SHA256SUMS-${{ matrix.platform }}.txt"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: release-${{ matrix.platform }}
+          path: release-assets/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: inputs.release_tag != ''
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Show release files
+        run: ls -lh release-assets
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release-assets/* --repo "$GH_REPO" --clobber
+          else
+            gh release create "$RELEASE_TAG" release-assets/* \
+              --repo "$GH_REPO" \
+              --title "$RELEASE_TAG" \
+              --target "$GITHUB_SHA" \
+              --generate-notes
+          fi
