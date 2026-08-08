@@ -1,0 +1,84 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pptx-tools"
+dynamic = ["version"]
+description = "Privacy-first desktop and CLI toolkit for watermarking, size-aware document media compression, and asset management."
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+license = "MIT"
+license-files = [
+  "LICENSE",
+  "THIRD_PARTY_NOTICES.md",
+  "assets/fonts/OFL.txt",
+  "assets/icons/PHOSPHOR-LICENSE.txt",
+  "licenses/*.txt",
+]
+authors = [
+  { name = "Doc Media Toolkit contributors" }
+]
+keywords = ["pptx", "docx", "xlsx", "pdf", "watermark", "compression", "pyside6"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Multimedia :: Video :: Conversion",
+  "Topic :: Office/Business :: Office Suites",
+]
+dependencies = [
+  "Pillow>=10.0",
+  "pikepdf>=10.0",
+  "PySide6>=6.9",
+  "python-pptx>=1.0.2",
+  "pypdf>=5.0",
+  "pypdfium2>=4.0",
+  "reportlab>=4.0",
+  "comtypes>=1.4.1; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+build = ["PyInstaller>=6.0"]
+dev = ["ruff>=0.12"]
+
+[project.scripts]
+pptx-tools = "pptx_tools.cli:main"
+pptx-tools-gui = "pptx_tools.gui:main"
+
+[project.urls]
+Homepage = "https://github.com/roanpy/doc-media-toolkit"
+Documentation = "https://github.com/roanpy/doc-media-toolkit#readme"
+Issues = "https://github.com/roanpy/doc-media-toolkit/issues"
+Repository = "https://github.com/roanpy/doc-media-toolkit.git"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+py-modules = [
+    "docx_image_compactor",
+    "pdf_image_compactor",
+    "pptx_quality_audit",
+    "pptx_video_compactor",
+    "pptx_video_compactor_gui",
+    "xlsx_image_compactor",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "pptx_tools.__version__" }
+
+[tool.setuptools.data-files]
+config = ["config/*.json"]
+assets = ["assets/*.icns", "assets/*.ico", "assets/*.png", "assets/*.svg"]
+"assets/fonts" = ["assets/fonts/*"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["pptx_tools*", "pptx_output_watermark*"]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

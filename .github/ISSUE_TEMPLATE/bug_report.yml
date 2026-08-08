@@ -1,0 +1,47 @@
+name: Bug report / 错误报告
+description: Report a reproducible problem / 报告可复现问题
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Remove confidential files, personal data, local paths, and credentials. Security issues must follow SECURITY.md. / 请移除机密文件、个人信息、本机路径和凭据；安全问题请按 SECURITY.md 私下报告。"
+  - type: input
+    id: version
+    attributes:
+      label: Version / 版本
+      placeholder: "0.2.0 or commit SHA"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform / 平台
+      options: ["macOS Apple Silicon", "macOS Intel", "Windows", "Linux/source", "Other / 其他"]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / 复现步骤
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and sanitized logs / 实际行为与脱敏日志
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check / 安全确认
+      options:
+        - label: "I removed confidential data and this is not a security vulnerability. / 我已移除敏感信息，且这不是安全漏洞。"
+          required: true
