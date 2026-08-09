@@ -301,12 +301,12 @@ PYTHONPATH=src python pptx_tools_gui.py
 
 4. 再做 macOS 本地打包验证。
 
-5. Release workflow 已包含三平台测试、Windows FFmpeg 固定版本与哈希校验、GUI 冒烟、DMG/签名结构检查及产物 SHA-256 清单；后续发布前关注实际 Actions 运行结果。
+5. Release workflow 只允许手动触发并只生成私有候选；三平台均从固定且校验哈希的 FFmpeg 8.1.2/x264 源码构建内置运行时，同时生成对应源码包、SBOM、审计报告、GUI 冒烟、DMG/签名结构检查和产物 SHA-256 清单，不会自动发布 GitHub Release。
 
 ## 注意事项
 
 - 旧两个项目仍保留，`doc-media-toolkit` 不依赖它们。
 - 后续同步旧项目修复时，需要手动复制或 cherry-pick 到 `doc-media-toolkit`。
 - 不要在公开文档、workflow 或脚本中写本机绝对路径。
-- Windows 上 FFmpeg 用 essentials，避免 full static 导致 one-file 暴涨。
+- Windows 正式包使用源码构建的最小 FFmpeg 8.1.2 运行时和 onedir portable ZIP；Homebrew/Gyan 二进制及 one-file 只能用于私下测试。
 - macOS 当前只做本地可运行包；公证分发需要 Developer ID 和 notarization secrets。

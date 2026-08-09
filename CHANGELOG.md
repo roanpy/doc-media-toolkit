@@ -6,8 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-09
+
 ### Added
 
+- **Source-pinned bundled FFmpeg 8.1.2**: Release candidates now build a minimal GPL runtime from SHA-256-pinned FFmpeg, x264, and zlib source, retain libx264 plus macOS VideoToolbox or Windows Media Foundation encoding, and emit the matching source archives, build script, configuration, toolchain record, licenses, and hashes beside each platform package.
 - **Public repository and license-complete packaging**: Public links now target `roanpy/doc-media-toolkit`; standalone builds collect the project, Python, Qt, asset, direct/transitive Python dependency, PyInstaller, FFmpeg, and optional LibreOffice notices under `licenses/`, with a bilingual licensing guide separating MIT source publication from target-specific binary obligations.
 - **Open-source readiness**: The source is now MIT-licensed with bilingual README entry points, contribution/security/conduct policies, issue and pull-request templates, third-party notices, accurate language-support boundaries, and an in-app open-source/privacy help topic. Project metadata and repository guidance now consistently use Doc Media Toolkit as the public product name while retaining the `pptx-tools` package and CLI for compatibility.
 - **Formal document image compression**: DOCX/DOCM, PDF, and XLSX/XLSM now route through the shared compression GUI and CLI. Document jobs require an explicit target size and an enabled image profile, retain format-specific structure/layout gates, and include their lazy-loaded backends in standalone builds.
@@ -18,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Fail-closed binary release gate**: The manual candidate workflow has read-only repository permission and no publishing job; public-binary audits now reject skipped dependency scans, missing SBOM/evidence, unsigned or unnotarized artifacts, Windows one-file packages, missing native/malware reports, and bundled GPL FFmpeg without hashed corresponding source.
 - **Public release safety**: Current documentation no longer contains maintainer-specific absolute paths, the public-safety gate covers the prepared tree, and release workflows no longer run automatically on tags.
 - **Measured compression controls**: The assessment row now decides between one-line and split layouts from the actual available width and control size hints instead of a fixed window breakpoint. The optional forced-output action is included only when visible, preventing clipped labels and buttons at 880–1180 px while preserving the one-line layout when it fits.
 - **Video cleanup confirmation**: A cleanup group with only duration/audio/content mismatches

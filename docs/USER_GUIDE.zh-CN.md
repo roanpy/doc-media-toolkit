@@ -178,8 +178,8 @@ python scripts/build_standalone.py \
 --dmg-output "/absolute/path/Doc Media Toolkit-macOS-arm64.dmg"
 ```
 
-需要无需安装办公软件的完整离线版时，使用 onedir 构建并显式加入完整
-LibreOffice 运行时：
+私下或内部环境需要无需安装办公软件的完整离线版时，使用 onedir 构建并显式加入
+完整 LibreOffice 运行时：
 
 ```bash
 python scripts/build_standalone.py \
@@ -195,7 +195,8 @@ python scripts/build_standalone.py \
 
 可用 `--libreoffice-root` 或 `PPTX_TOOLS_LIBREOFFICE_ROOT` 指定安装根目录。
 构建脚本只接受同时包含转换程序和许可证的完整运行时。LibreOffice 版本不支持
-`--onefile`，避免每次启动解压数百 MB；轻量版行为保持不变。
+`--onefile`，避免每次启动解压数百 MB；轻量版行为保持不变。该离线版公开前还要
+单独核验 LibreOffice MPL 及其组件许可证要求的匹配源码获取方式，标准正式包不内置。
 
 Windows GUI one-file：
 
@@ -227,14 +228,21 @@ python scripts/build_standalone.py \
 - Windows CLI 仍使用上面的 `--cli --onefile` 命令，但必须在 Windows 主机上执行，不能跨平台编译。
 - macOS `--dmg` 只适用于 GUI onedir 构建；生成的 DMG 会包含 `Doc Media Toolkit.app` 和 `Applications` 快捷方式，不会打入本机其他应用。
 
-Windows 打包建议使用 FFmpeg essentials，并通过环境变量指定真实二进制，避免把 full static 版本打进 one-file：
+正式公开包必须先用固定源码生成 FFmpeg 8.1.2 运行时，再通过环境变量交给打包脚本：
 
-```powershell
-$env:PPTX_TOOLS_FFMPEG="C:\path\to\ffmpeg.exe"
-$env:PPTX_TOOLS_FFPROBE="C:\path\to\ffprobe.exe"
+```bash
+scripts/build_ffmpeg_runtime.sh release-assets/ffmpeg-runtime
+export PPTX_TOOLS_FFMPEG="$PWD/release-assets/ffmpeg-runtime/bin/ffmpeg"
+export PPTX_TOOLS_FFPROBE="$PWD/release-assets/ffmpeg-runtime/bin/ffprobe"
+export PPTX_TOOLS_FFMPEG_LICENSE_DIR="$PWD/release-assets/ffmpeg-runtime/licenses"
 ```
 
-构建脚本默认拒绝打包单个超过 `260MB` 的 `ffmpeg/ffprobe` 二进制，避免误打进异常巨大的 full static build。Windows one-file 总体积超过 `200MB` 是可接受的；如确实需要取消单二进制上限，可加：
+Windows 在 MSYS2 MINGW64 中运行同一脚本，生成 `.exe`。脚本以 SHA-256 固定
+FFmpeg 8.1.2 与 x264，保留 libx264 以及 macOS VideoToolbox / Windows Media
+Foundation，并生成同一 Release 必须携带的对应源码包。Homebrew/Gyan 预编译
+FFmpeg 只能用于本地测试，不能进入正式公开包。
+
+构建脚本默认拒绝打包单个超过 `260MB` 的 `ffmpeg/ffprobe` 二进制，避免误打进异常巨大的 full static build。私下测试的 Windows one-file 总体积超过 `200MB` 可以接受，但正式公开包必须使用 onedir portable ZIP；如确实需要取消单二进制上限，可加：
 
 ```bash
 --max-bundled-binary-mb 0
@@ -296,8 +304,8 @@ PPTX_TOOLS_WPS / PPTX_TOOLS_WPP
 - 公开文档和 workflow 不写本机绝对路径。
 - 开源仓库可以按 MIT 发布；DMG/EXE 不是“仅 MIT”产物，必须另外通过 Qt、FFmpeg、PDFium、Python 及平台原生库的二进制许可门禁。
 - macOS 包声明最低系统版本 13.0；默认使用 ad-hoc 签名。配置 `PPTX_TOOLS_CODESIGN_IDENTITY` 后可做 Developer ID + Hardened Runtime 签名，另配置已创建的 `PPTX_TOOLS_NOTARY_PROFILE` 可在 DMG 生成后自动公证并 stapler。
-- Windows one-file 要避免打入过大的 full static FFmpeg。
-- 手动触发的 Release workflow 固定 Windows FFmpeg 版本并校验下载 SHA-256；构建后检查内置二进制、启动 GUI、验证 DMG/签名结构，并为产物生成 `SHA256SUMS-*.txt`。
+- Windows 正式公开包使用 onedir portable ZIP；one-file 仅限私下测试。
+- 手动触发的 Release workflow 从固定且校验哈希的 FFmpeg/x264 源码构建内置运行时；构建后检查内置二进制、启动 GUI、验证 DMG/签名结构，并生成对应源码包、SBOM、审计报告及 `SHA256SUMS-*.txt`。
 
 ### 本地发布前审计与压缩基准
 

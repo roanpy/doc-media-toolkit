@@ -219,6 +219,9 @@ IMAGE_LIBRARY/
 - 轮转日志位于平台应用数据目录的 `Doc Media Toolkit/logs/`，不写入资产库。
 - FFmpeg/ffprobe 用于视频编码、探测、指纹和质量审计；发布包必须内置匹配许可，
   并按真实构建参数履行 LGPL/GPL 及对应源码义务。
+- 正式候选由 `scripts/build_ffmpeg_runtime.sh` 从 SHA-256 固定的 FFmpeg 8.1.2、
+  x264 与 zlib 源码构建，只保留项目所需的 libx264、VideoToolbox/Media Foundation
+  和内置编解码/滤镜，并为每个平台生成对应源码、配置、工具链与哈希证据。
 - 打包脚本把项目、Python、Qt、资源与运行时 Python 直接/传递依赖的许可材料统一
   放入 `licenses/`；缺少必需许可文本时失败关闭。具体分发边界见 `LICENSING.md`。
 - Office/WPS/LibreOffice/Keynote/Pages 是文档导出的可选外部引擎；标准轻量包不

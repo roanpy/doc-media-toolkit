@@ -11,15 +11,20 @@ chain and artifact provenance that tests do not cover:
 3. Optional CycloneDX SBOM via ``uv export`` (only when explicitly requested).
 4. Git branch/commit provenance and a clean working tree.
 5. Packaged binary version + SHA-256 hashes for everything under ``dist/``.
+6. Optional fail-closed public-binary evidence validation.
 
-No GitHub Actions: this is a local entry point meant to be run by hand on the
-build host, on each target platform, before producing a release artifact.
+This is a target-host entry point. It can run locally or inside the manually
+dispatched candidate-build workflow; it never publishes a release.
 
 Usage::
 
     python scripts/release_audit.py --check
     python scripts/release_audit.py --check --with-sbom dist/sbom.json
     python scripts/release_audit.py --check --dist-dir dist --output release-audit.md
+    python scripts/release_audit.py --check --public-binary \
+      --with-sbom release-assets/sbom.cdx.json \
+      --evidence release-assets/public-binary-evidence.json \
+      --dist-dir release-assets
     python scripts/release_audit.py --help
 """
 
@@ -30,6 +35,7 @@ import hashlib
 import importlib.util
 import json
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -265,16 +271,214 @@ def check_python_runtime() -> dict[str, Any]:
     }
 
 
+def _evidence_file(
+    root: Path,
+    item: Any,
+    *,
+    label: str,
+) -> tuple[Path | None, str | None]:
+    if not isinstance(item, dict):
+        return None, f"{label} must be an object with path and sha256."
+    relative = item.get("path")
+    expected = item.get("sha256")
+    if not isinstance(relative, str) or not relative.strip():
+        return None, f"{label}.path is required."
+    if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", expected):
+        return None, f"{label}.sha256 must be a 64-character hexadecimal digest."
+    candidate = (root / relative).resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return None, f"{label}.path escapes the release directory."
+    if not candidate.is_file():
+        return None, f"{label} is missing: {relative}"
+    actual = _sha256(candidate)
+    if actual.lower() != expected.lower():
+        return None, f"{label} SHA-256 mismatch: {relative}"
+    return candidate, None
+
+
+def check_public_binary_evidence(
+    evidence_path: Path | None,
+    dist_dir: Path,
+) -> dict[str, Any]:
+    """Fail closed unless every public binary has verifiable sidecar evidence."""
+    name = "public binary evidence"
+    if evidence_path is None:
+        return {
+            "name": name,
+            "status": "fail",
+            "detail": "--evidence is required with --public-binary.",
+        }
+    try:
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return {
+            "name": name,
+            "status": "fail",
+            "detail": f"unable to read evidence: {exc}",
+        }
+
+    findings: list[str] = []
+    root = dist_dir.expanduser().resolve()
+    if evidence.get("schema") != "doc-media-toolkit.public-binary-evidence.v1":
+        findings.append("unsupported or missing evidence schema")
+    if evidence.get("version") != PROJECT_VERSION:
+        findings.append("evidence version does not match the application version")
+
+    artifacts = evidence.get("artifacts")
+    if not isinstance(artifacts, list) or not artifacts:
+        findings.append("at least one artifact is required")
+        artifacts = []
+
+    for index, artifact in enumerate(artifacts):
+        prefix = f"artifacts[{index}]"
+        if not isinstance(artifact, dict):
+            findings.append(f"{prefix} must be an object")
+            continue
+        _path, error = _evidence_file(root, artifact, label=prefix)
+        if error:
+            findings.append(error)
+        platform_name = artifact.get("platform")
+        package_type = artifact.get("package_type")
+        if platform_name not in {"macos", "windows"}:
+            findings.append(f"{prefix}.platform must be macos or windows")
+        allowed_package_types = {
+            "macos": {"dmg", "app-zip"},
+            "windows": {"portable-zip", "installer"},
+        }
+        if package_type not in allowed_package_types.get(platform_name, set()):
+            findings.append(f"{prefix}.package_type is not allowed for {platform_name}")
+        architecture = artifact.get("architecture")
+        if not isinstance(architecture, str) or not architecture.strip():
+            findings.append(f"{prefix}.architecture is required")
+        if platform_name == "windows" and package_type == "onefile":
+            findings.append(
+                f"{prefix} uses blocked Windows onefile distribution; use a replaceable onedir package"
+            )
+
+        signature = artifact.get("signature")
+        if not isinstance(signature, dict) or signature.get("status") != "valid":
+            findings.append(f"{prefix} lacks a valid platform signature")
+        else:
+            expected_signature = (
+                "developer-id" if platform_name == "macos" else "authenticode"
+            )
+            if signature.get("type") != expected_signature:
+                findings.append(f"{prefix}.signature.type must be {expected_signature}")
+            _report, error = _evidence_file(
+                root, signature.get("report"), label=f"{prefix}.signature.report"
+            )
+            if error:
+                findings.append(error)
+
+        if platform_name == "macos":
+            notarization = artifact.get("notarization")
+            if (
+                not isinstance(notarization, dict)
+                or notarization.get("status") != "valid"
+            ):
+                findings.append(f"{prefix} lacks valid Apple notarization evidence")
+            else:
+                _report, error = _evidence_file(
+                    root,
+                    notarization.get("report"),
+                    label=f"{prefix}.notarization.report",
+                )
+                if error:
+                    findings.append(error)
+
+        malware = artifact.get("malware_scan")
+        if not isinstance(malware, dict) or malware.get("status") != "clean":
+            findings.append(f"{prefix} lacks a clean malware-scan result")
+        else:
+            _report, error = _evidence_file(
+                root, malware.get("report"), label=f"{prefix}.malware_scan.report"
+            )
+            if error:
+                findings.append(error)
+
+        for field in ("sbom", "native_inventory"):
+            _sidecar, error = _evidence_file(
+                root, artifact.get(field), label=f"{prefix}.{field}"
+            )
+            if error:
+                findings.append(error)
+
+        ffmpeg = artifact.get("ffmpeg")
+        if not isinstance(ffmpeg, dict) or not isinstance(ffmpeg.get("bundled"), bool):
+            findings.append(f"{prefix}.ffmpeg.bundled must be true or false")
+        elif ffmpeg["bundled"]:
+            if ffmpeg.get("version") != "8.1.2":
+                findings.append(f"{prefix}.ffmpeg.version must be 8.1.2")
+            configuration = ffmpeg.get("configuration")
+            if not isinstance(configuration, str) or not {
+                "--enable-gpl",
+                "--enable-version3",
+                "--enable-libx264",
+            }.issubset(configuration.split()):
+                findings.append(f"{prefix}.ffmpeg.configuration is incomplete")
+            if ffmpeg.get("license") != "GPL-3.0-or-later":
+                findings.append(f"{prefix}.ffmpeg.license must be GPL-3.0-or-later")
+            _source, error = _evidence_file(
+                root,
+                ffmpeg.get("corresponding_source"),
+                label=f"{prefix}.ffmpeg.corresponding_source",
+            )
+            if error:
+                findings.append(error)
+        elif (
+            not isinstance(ffmpeg.get("runtime_requirement"), str)
+            or not ffmpeg["runtime_requirement"].strip()
+        ):
+            findings.append(
+                f"{prefix}.ffmpeg.runtime_requirement is required when FFmpeg is external"
+            )
+
+    return {
+        "name": name,
+        "status": "fail" if findings else "pass",
+        "detail": (
+            f"{len(findings)} blocking finding(s)"
+            if findings
+            else f"{len(artifacts)} artifact(s) have complete evidence"
+        ),
+        "findings": findings,
+    }
+
+
 def run_all_checks(args_ns: argparse.Namespace) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
     checks.append(check_python_runtime())
     checks.append(check_git_state())
     checks.append(check_uv_lock())
-    if not args_ns.skip_pip_audit:
-        checks.append(check_pip_audit())
+    if args_ns.public_binary and args_ns.skip_pip_audit:
+        checks.append(
+            {
+                "name": "pip-audit",
+                "status": "fail",
+                "detail": "--skip-pip-audit is not allowed with --public-binary.",
+            }
+        )
+    elif not args_ns.skip_pip_audit:
+        pip_audit = check_pip_audit()
+        if args_ns.public_binary and pip_audit["status"] == "skipped":
+            pip_audit["status"] = "fail"
+            pip_audit["detail"] = "pip-audit is required for a public binary release."
+        checks.append(pip_audit)
     if args_ns.with_sbom is not None and not args_ns.skip_sbom:
         checks.append(check_sbom(args_ns.with_sbom))
+    elif args_ns.public_binary:
+        checks.append(
+            {
+                "name": "CycloneDX SBOM",
+                "status": "fail",
+                "detail": "--with-sbom is required with --public-binary.",
+            }
+        )
     checks.append(check_dist_artifacts(args_ns.dist_dir))
+    if args_ns.public_binary:
+        checks.append(check_public_binary_evidence(args_ns.evidence, args_ns.dist_dir))
 
     statuses = {c["status"] for c in checks}
     overall = "pass" if not (statuses & {"fail", "vulns_found"}) else "fail"
@@ -322,7 +526,7 @@ def write_markdown(report: dict[str, Any], path: Path) -> None:
             "- macOS 产物默认 ad-hoc 签名；Developer ID 公证需单独配置 `--notary-profile`，"
             "本审计不执行公证。",
             "- Windows 产物签名需在 Windows 主机用证书完成；本审计只记录哈希，不签名。",
-            "- pip-audit 为可选外部工具；CycloneDX 由现有 uv 导出，不纳入运行时依赖。",
+            "- 普通候选中 pip-audit 为可选外部工具；公开二进制模式必须执行。CycloneDX 由现有 uv 导出，不纳入运行时依赖。",
         ]
     )
     artifact_check = next(
@@ -351,7 +555,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "Local pre-release dependency and artifact audit. Runs uv lock check, "
             "Git provenance, optional pip-audit, optional CycloneDX SBOM, and dist/ "
             "hash recording. "
-            "No GitHub Actions; run by hand on each build platform."
+            "Runs locally or in the manual candidate workflow; never publishes."
         )
     )
     parser.add_argument(
@@ -380,6 +584,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--skip-sbom",
         action="store_true",
         help="Skip CycloneDX SBOM generation entirely.",
+    )
+    parser.add_argument(
+        "--public-binary",
+        action="store_true",
+        help=(
+            "Apply fail-closed public binary gates. Requires a generated SBOM, "
+            "pip-audit, and --evidence with signatures, notarization where applicable, "
+            "malware scan, native inventory, and FFmpeg source-delivery evidence."
+        ),
+    )
+    parser.add_argument(
+        "--evidence",
+        type=Path,
+        default=None,
+        help="Public-binary evidence JSON inside the release directory.",
     )
     parser.add_argument(
         "--output",

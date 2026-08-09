@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import os
+import sys
 import tempfile
 import unittest
-import sys
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -11,6 +12,7 @@ from scripts.build_standalone import (
     add_bundle_license_files,
     add_optional_ffmpeg_binaries,
     experimental_dist_root,
+    find_ffmpeg_license_files,
     notarize_macos_dmg,
     runtime_distribution_names,
     _python_license_file,
@@ -18,6 +20,15 @@ from scripts.build_standalone import (
 
 
 class StandaloneBuildTests(unittest.TestCase):
+    def test_ffmpeg_license_lookup_accepts_component_prefixed_names(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            for name in ("FFmpeg-LICENSE.md", "x264-COPYING", "zlib-LICENSE"):
+                (root / name).write_text("license", encoding="utf-8")
+            with patch.dict(os.environ, {"PPTX_TOOLS_FFMPEG_LICENSE_DIR": temp_dir}):
+                found = find_ffmpeg_license_files([])
+        self.assertEqual(len(found), 3)
+
     def test_python_license_lookup_supports_nested_runtime_docs(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

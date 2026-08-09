@@ -1,4 +1,4 @@
-name: Build Release Artifacts
+name: Build Release Candidates
 
 on:
   workflow_dispatch:
@@ -11,17 +11,13 @@ on:
         options:
           - windows
           - all
-      release_tag:
-        description: "Optional release tag. Leave blank to only build artifacts."
-        required: false
-        type: string
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   MACOSX_DEPLOYMENT_TARGET: "13.0"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -40,15 +36,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install FFmpeg and Poppler on macOS
+      - name: Install FFmpeg build tools and Poppler on macOS
         if: runner.os == 'macOS'
         env:
-          # GitHub's macOS images may contain an untrusted optional tap. Keep
-          # the runner's formula index and bypass that unrelated tap gate so
-          # the official Homebrew ffmpeg formula can be installed.
+          # Keep runner package metadata stable during the candidate build.
           HOMEBREW_NO_AUTO_UPDATE: "1"
-          HOMEBREW_NO_REQUIRE_TAP_TRUST: "1"
-        run: brew install ffmpeg poppler
+        run: brew install nasm pkgconf poppler
 
       - name: Install Poppler on Windows
         if: runner.os == 'Windows'
@@ -70,31 +63,47 @@ jobs:
           $pdfimages.Directory.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           & $pdfimages.FullName -v
 
-      - name: Use FFmpeg essentials on Windows
+      - name: Set up MSYS2 for the source-pinned FFmpeg runtime
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            base-devel
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-nasm
+            mingw-w64-x86_64-pkgconf
+          path-type: inherit
+
+      - name: Build FFmpeg 8.1.2 from pinned corresponding source on macOS
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p release-assets
+          scripts/build_ffmpeg_runtime.sh "release-assets/ffmpeg-runtime"
+          echo "PPTX_TOOLS_FFMPEG=$PWD/release-assets/ffmpeg-runtime/bin/ffmpeg" >> "$GITHUB_ENV"
+          echo "PPTX_TOOLS_FFPROBE=$PWD/release-assets/ffmpeg-runtime/bin/ffprobe" >> "$GITHUB_ENV"
+          echo "PPTX_TOOLS_FFMPEG_LICENSE_DIR=$PWD/release-assets/ffmpeg-runtime/licenses" >> "$GITHUB_ENV"
+
+      - name: Build FFmpeg 8.1.2 from pinned corresponding source on Windows
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: scripts/build_ffmpeg_runtime.sh "release-assets/ffmpeg-runtime"
+
+      - name: Publish Windows FFmpeg build paths
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
-          $version = '8.1.2'
-          $assetName = "ffmpeg-$version-essentials_build.zip"
-          $expectedSha256 = 'db580001caa24ac104c8cb856cd113a87b0a443f7bdf47d8c12b1d740584a2ec'
-          $downloadUrl = "https://github.com/GyanD/codexffmpeg/releases/download/$version/$assetName"
-          $zipPath = Join-Path $env:RUNNER_TEMP $assetName
-          $extractPath = Join-Path $env:RUNNER_TEMP 'ffmpeg-essentials'
-          Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
-          $actualSha256 = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actualSha256 -ne $expectedSha256) { throw "FFmpeg archive checksum mismatch: $actualSha256" }
-          Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
-          $ffmpeg = Get-ChildItem $extractPath -Recurse -Filter ffmpeg.exe | Where-Object { $_.Directory.Name -eq 'bin' } | Select-Object -First 1
-          $ffprobe = Get-ChildItem $extractPath -Recurse -Filter ffprobe.exe | Where-Object { $_.Directory.Name -eq 'bin' } | Select-Object -First 1
-          if (-not $ffmpeg -or -not $ffprobe) { throw 'Unable to locate ffmpeg.exe / ffprobe.exe in essentials build.' }
-          "PPTX_TOOLS_FFMPEG=$($ffmpeg.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "PPTX_TOOLS_FFPROBE=$($ffprobe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $runtime = (Resolve-Path "release-assets/ffmpeg-runtime").Path
+          "PPTX_TOOLS_FFMPEG=$runtime\bin\ffmpeg.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PPTX_TOOLS_FFPROBE=$runtime\bin\ffprobe.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PPTX_TOOLS_FFMPEG_LICENSE_DIR=$runtime\licenses" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[build,dev]"
+          python -m pip install pip-audit uv
 
       - name: Lint Python modules
         run: ruff check src tests scripts
@@ -124,7 +133,6 @@ jobs:
       - name: Build macOS GUI app
         if: runner.os == 'macOS'
         run: |
-          mkdir -p release-assets
           python scripts/build_standalone.py --gui --clean --target-platform macos --bundle-ffmpeg --require-ffmpeg-bundle --dmg --dmg-output "release-assets/Doc-Media-Toolkit-${{ matrix.platform }}.dmg" --name "Doc Media Toolkit"
           test -x "dist/Doc Media Toolkit.app/Contents/Frameworks/ffmpeg"
           test -x "dist/Doc Media Toolkit.app/Contents/Frameworks/ffprobe"
@@ -146,25 +154,42 @@ jobs:
           wait "$app_pid" || true
           ditto -c -k --sequesterRsrc --keepParent "dist/Doc Media Toolkit.app" "release-assets/Doc-Media-Toolkit-${{ matrix.platform }}.zip"
 
-      - name: Build macOS CLI
-        if: runner.os == 'macOS'
-        run: |
-          python scripts/build_standalone.py --cli --clean --onefile --bundle-ffmpeg --require-ffmpeg-bundle --name "Doc Media Toolkit"
-          tar -C dist -czf "release-assets/Doc-Media-Toolkit-cli-${{ matrix.platform }}.tar.gz" "Doc Media Toolkit"
+          cp "release-assets/ffmpeg-runtime/FFMPEG-BUILD.txt" "release-assets/FFMPEG-${{ matrix.platform }}.txt"
+          mv "release-assets/ffmpeg-runtime/Doc-Media-Toolkit-FFmpeg-8.1.2-corresponding-source.tar.gz" "release-assets/Doc-Media-Toolkit-FFmpeg-8.1.2-${{ matrix.platform }}-corresponding-source.tar.gz"
+          python scripts/release_audit.py --check \
+            --dist-dir "dist/Doc Media Toolkit.app" \
+            --with-sbom "release-assets/SBOM-${{ matrix.platform }}.cdx.json" \
+            --output "release-assets/RELEASE-AUDIT-${{ matrix.platform }}.md"
 
-      - name: Build Windows GUI executable
+      - name: Build Windows GUI portable directory
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force release-assets | Out-Null
-          python scripts/build_standalone.py --windows-onefile --clean --bundle-ffmpeg --require-ffmpeg-bundle --name "Doc Media Toolkit"
-          if (-not (Test-Path "dist/Doc Media Toolkit.exe")) { throw 'Windows executable is missing.' }
+          python scripts/build_standalone.py --gui --target-platform windows --clean --bundle-ffmpeg --require-ffmpeg-bundle --name "Doc Media Toolkit"
+          $appPath = "dist/Doc Media Toolkit/Doc Media Toolkit.exe"
+          if (-not (Test-Path $appPath)) { throw 'Windows executable is missing.' }
           $env:QT_QPA_PLATFORM = 'offscreen'
-          $process = Start-Process -FilePath "dist/Doc Media Toolkit.exe" -PassThru
+          $process = Start-Process -FilePath $appPath -PassThru
           Start-Sleep -Seconds 12
           if ($process.HasExited) { throw "GUI smoke test exited early with code $($process.ExitCode)." }
           Stop-Process -Id $process.Id -Force
-          Copy-Item "dist/Doc Media Toolkit.exe" "release-assets/Doc-Media-Toolkit-${{ matrix.platform }}.exe"
+          Copy-Item "release-assets/ffmpeg-runtime/FFMPEG-BUILD.txt" "release-assets/FFMPEG-${{ matrix.platform }}.txt"
+          Move-Item "release-assets/ffmpeg-runtime/Doc-Media-Toolkit-FFmpeg-8.1.2-corresponding-source.tar.gz" "release-assets/Doc-Media-Toolkit-FFmpeg-8.1.2-${{ matrix.platform }}-corresponding-source.tar.gz"
+          Compress-Archive -Path "dist/Doc Media Toolkit" -DestinationPath "release-assets/Doc-Media-Toolkit-${{ matrix.platform }}-portable.zip" -Force
+          python scripts/release_audit.py --check `
+            --dist-dir "dist/Doc Media Toolkit" `
+            --with-sbom "release-assets/SBOM-${{ matrix.platform }}.cdx.json" `
+            --output "release-assets/RELEASE-AUDIT-${{ matrix.platform }}.md"
+
+      - name: Remove macOS build-only FFmpeg staging
+        if: runner.os == 'macOS'
+        run: rm -rf "release-assets/ffmpeg-runtime"
+
+      - name: Remove Windows build-only FFmpeg staging
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Remove-Item -Recurse -Force "release-assets/ffmpeg-runtime"
 
       - name: Write macOS checksums
         if: runner.os == 'macOS'
@@ -187,38 +212,3 @@ jobs:
           name: release-${{ matrix.platform }}
           path: release-assets/*
           if-no-files-found: error
-
-  release:
-    name: Publish GitHub Release
-    runs-on: ubuntu-latest
-    needs: build
-    if: inputs.release_tag != ''
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v5
-        with:
-          path: release-assets
-          merge-multiple: true
-
-      - name: Show release files
-        run: ls -lh release-assets
-
-      - name: Create or update release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" release-assets/* --repo "$GH_REPO" --clobber
-          else
-            gh release create "$RELEASE_TAG" release-assets/* \
-              --repo "$GH_REPO" \
-              --title "$RELEASE_TAG" \
-              --target "$GITHUB_SHA" \
-              --generate-notes
-          fi
