@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from argparse import Namespace
 from pathlib import Path
 from unittest.mock import patch
 
@@ -141,6 +142,132 @@ class LocalReleaseToolsTest(unittest.TestCase):
         self.assertEqual(
             result["files"][0]["sha256"],
             "c7c5c1d70c5dec4416ab6158afd0b223ef40c29b1dc1f97ed9428b94d4cadb1c",
+        )
+
+    def test_public_binary_gate_fails_closed_without_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result = release_audit.check_public_binary_evidence(None, Path(temp_dir))
+        self.assertEqual(result["status"], "fail")
+        self.assertIn("--evidence", result["detail"])
+
+    def test_public_binary_audit_cannot_skip_dependency_scan(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "artifact").write_bytes(b"artifact")
+            args = Namespace(
+                skip_pip_audit=True,
+                public_binary=True,
+                with_sbom=None,
+                skip_sbom=False,
+                dist_dir=root,
+                evidence=None,
+            )
+            with (
+                patch.object(
+                    release_audit,
+                    "check_git_state",
+                    return_value={"name": "git provenance", "status": "pass"},
+                ),
+                patch.object(
+                    release_audit,
+                    "check_uv_lock",
+                    return_value={"name": "uv lock", "status": "pass"},
+                ),
+            ):
+                report = release_audit.run_all_checks(args)
+
+        pip_check = next(
+            check for check in report["checks"] if check["name"] == "pip-audit"
+        )
+        self.assertEqual(pip_check["status"], "fail")
+
+    def test_public_binary_gate_accepts_complete_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+
+            def sidecar(name: str, content: bytes = b"verified") -> dict[str, str]:
+                path = root / name
+                path.write_bytes(content)
+                return {"path": name, "sha256": release_audit._sha256(path)}
+
+            artifact = sidecar("Doc-Media-Toolkit-macOS-arm64.dmg", b"dmg")
+            evidence = {
+                "schema": "doc-media-toolkit.public-binary-evidence.v1",
+                "version": release_audit.PROJECT_VERSION,
+                "artifacts": [
+                    {
+                        **artifact,
+                        "platform": "macos",
+                        "architecture": "arm64",
+                        "package_type": "dmg",
+                        "signature": {
+                            "status": "valid",
+                            "type": "developer-id",
+                            "report": sidecar("codesign.txt"),
+                        },
+                        "notarization": {
+                            "status": "valid",
+                            "report": sidecar("notarization.txt"),
+                        },
+                        "malware_scan": {
+                            "status": "clean",
+                            "report": sidecar("malware.txt"),
+                        },
+                        "sbom": sidecar("sbom.cdx.json", b"{}"),
+                        "native_inventory": sidecar("native-inventory.json", b"{}"),
+                        "ffmpeg": {
+                            "bundled": True,
+                            "version": "8.1.2",
+                            "configuration": (
+                                "--enable-gpl --enable-version3 --enable-libx264"
+                            ),
+                            "license": "GPL-3.0-or-later",
+                            "corresponding_source": sidecar(
+                                "ffmpeg-corresponding-source.tar.xz", b"source"
+                            ),
+                        },
+                    }
+                ],
+            }
+            evidence_path = root / "public-binary-evidence.json"
+            evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+            result = release_audit.check_public_binary_evidence(evidence_path, root)
+
+        self.assertEqual(result["status"], "pass")
+
+    def test_public_binary_gate_rejects_windows_onefile_and_missing_source(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            artifact = root / "Doc-Media-Toolkit-windows-x64.exe"
+            artifact.write_bytes(b"exe")
+            evidence = {
+                "schema": "doc-media-toolkit.public-binary-evidence.v1",
+                "version": release_audit.PROJECT_VERSION,
+                "artifacts": [
+                    {
+                        "path": artifact.name,
+                        "sha256": release_audit._sha256(artifact),
+                        "platform": "windows",
+                        "package_type": "onefile",
+                        "ffmpeg": {
+                            "bundled": True,
+                            "version": "8.1.2",
+                            "configuration": "--enable-gpl",
+                            "license": "GPL-3.0-or-later",
+                        },
+                    }
+                ],
+            }
+            evidence_path = root / "evidence.json"
+            evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+            result = release_audit.check_public_binary_evidence(evidence_path, root)
+
+        self.assertEqual(result["status"], "fail")
+        self.assertTrue(any("onefile" in finding for finding in result["findings"]))
+        self.assertTrue(
+            any("corresponding_source" in finding for finding in result["findings"])
         )
 
 

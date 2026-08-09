@@ -77,6 +77,12 @@ assets = ["assets/*.icns", "assets/*.ico", "assets/*.png", "assets/*.svg"]
 where = ["src"]
 include = ["pptx_tools*", "pptx_output_watermark*"]
 
+[tool.uv]
+cache-keys = [
+  { file = "pyproject.toml" },
+  { file = "src/pptx_tools/__init__.py" },
+]
+
 [tool.ruff]
 target-version = "py310"
 

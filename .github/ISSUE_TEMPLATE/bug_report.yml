@@ -10,7 +10,7 @@ body:
     id: version
     attributes:
       label: Version / 版本
-      placeholder: "0.2.0 or commit SHA"
+      placeholder: "0.2.1 or commit SHA"
     validations:
       required: true
   - type: dropdown

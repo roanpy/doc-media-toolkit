@@ -313,7 +313,7 @@ def find_ffmpeg_license_files(binary_paths: Iterable[Path]) -> list[Path]:
         for root in roots:
             if not root.is_dir():
                 continue
-            for pattern in ("LICENSE*", "COPYING*", "NOTICE*"):
+            for pattern in ("*LICENSE*", "*COPYING*", "*NOTICE*"):
                 matches.extend(
                     candidate.resolve()
                     for candidate in root.glob(pattern)

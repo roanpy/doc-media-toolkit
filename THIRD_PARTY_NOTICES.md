@@ -45,8 +45,8 @@ The standalone build collects each installed distribution's `METADATA` and `LICE
 
 ## Optional or packaged native runtimes / 可选或打包的原生运行时
 
-- **FFmpeg/FFprobe**: licensing is determined by the exact build configuration. The packaging script refuses to bundle binaries without matching `LICENSE`, `COPYING`, or `NOTICE` files. A build containing `--enable-gpl` is a GPL build; distributors must also satisfy the corresponding-source obligations for that exact binary. Do not describe the whole installer as “MIT only.”
-- **LibreOffice**: included only by an explicit offline onedir build. The complete runtime and its own license notices must remain together.
+- **FFmpeg/FFprobe, x264, and zlib**: formal packages use the SHA-256-pinned source build in `scripts/build_ffmpeg_runtime.sh`. FFmpeg and x264 make the runtime GPL-covered; zlib retains the zlib License. The same Release must carry the matching corresponding-source archive, exact configuration, licenses, and hashes. Do not describe the whole installer as “MIT only.”
+- **LibreOffice**: external in the standard package. An explicit offline onedir build is private/internal-only unless the complete runtime, notices, and matching source-code access required by the MPL and bundled component licenses are independently verified for that artifact.
 - **Microsoft Office, WPS Office, Keynote, Pages, and system Poppler**: discovered and invoked externally; they are not included in the standard package.
 - **Platform-native libraries**: the exact set collected by PyInstaller can differ on macOS and Windows. A public binary release requires an artifact-specific inventory and license audit in addition to this source-level list.
 
@@ -54,6 +54,8 @@ The standalone build collects each installed distribution's `METADATA` and `LICE
 
 - Qt for Python: <https://www.qt.io/qt-for-python>
 - FFmpeg legal information: <https://ffmpeg.org/legal.html>
+- x264: <https://code.videolan.org/videolan/x264>
+- zlib: <https://zlib.net/>
 - pypdfium2: <https://github.com/pypdfium2-team/pypdfium2>
 - PyInstaller license: <https://pyinstaller.org/en/stable/license.html>
 

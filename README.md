@@ -6,7 +6,8 @@
   English · [简体中文](README.zh-CN.md)
 
   [![Status: Stable](https://img.shields.io/badge/status-stable-brightgreen.svg)](#project-status)
-  [![Version 0.2.0](https://img.shields.io/badge/version-0.2.0-2563eb.svg)](src/pptx_tools/__init__.py)
+  [![Binary packages: gated](https://img.shields.io/badge/binaries-signing%20%26%20license%20gated-orange.svg)](docs/INSTALL.md)
+  [![Version 0.2.1](https://img.shields.io/badge/version-0.2.1-2563eb.svg)](src/pptx_tools/__init__.py)
   [![Python 3.10–3.13](https://img.shields.io/badge/Python-3.10--3.13-3776AB.svg?logo=python&logoColor=white)](pyproject.toml)
   [![macOS | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey.svg)](#quick-start)
   [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -67,7 +68,14 @@ Every image above is captured from the current source using anonymous synthetic 
 
 ## Quick start
 
-Python 3.12 is recommended. The complete desktop install includes the required Python packages; FFmpeg, Poppler, and office runtimes depend on the selected workflow and platform.
+> [!IMPORTANT]
+> The source release is available. Prebuilt macOS and Windows packages are currently
+> withheld as release candidates until signing and artifact-level license gates pass.
+
+Python 3.12 is recommended. The source environment installs the required Python
+packages; FFmpeg, Poppler, and office runtimes depend on the selected workflow and
+platform. See the [installation and platform guide](docs/INSTALL.md) for the tested
+matrix, external runtimes, safe upgrade steps, and package trust status.
 
 macOS / Linux:
 
@@ -111,23 +119,27 @@ See the [dependency rationale](docs/DEPENDENCIES.md), [licensing guide](docs/LIC
 
 ## Project status
 
-The project is published as a **stable release**. PPTX compression, watermarking, the video asset library, and the primary document-compatibility paths have been confirmed. Image asset management is an ancillary capability and has not yet received the same depth of validation as the core workflows. The application shell, watermark workspace, compression workspace, and help center support Simplified Chinese and English; the video and image library workspaces remain Chinese-first. First launch defaults to English. Set `PPTX_TOOLS_LANG=zh` before launch to use Chinese.
+The current source identifies as **stable 0.2.1**. PPTX compression, watermarking, the video asset library, and the primary document-compatibility paths have been confirmed. Image asset management is an ancillary capability and has not yet received the same depth of validation as the core workflows. The application shell, watermark workspace, compression workspace, and help center support Simplified Chinese and English; the video and image library workspaces remain Chinese-first. First launch defaults to English. Set `PPTX_TOOLS_LANG=zh` before launch to use Chinese.
 
-The public repository is `doc-media-toolkit`; the Python distribution and CLI retain `pptx-tools` for compatibility. A signed installer has not yet been published as a GitHub Release.
+The public repository is `doc-media-toolkit`; the Python distribution and CLI retain `pptx-tools` for compatibility. The 0.2.0 DMG/EXE candidates were returned to Draft after artifact review and must never be republished. Any replacement binary release uses 0.2.1 or later and remains blocked by Developer ID/notarization or Authenticode signing, GPL FFmpeg corresponding-source delivery, SBOM/native inventory, malware-scan evidence, and the Windows Qt redistribution path. See the [candidate audit](docs/releases/v0.2.0-candidate-audit.md).
+
+Replacement candidates no longer reuse Homebrew/Gyan FFmpeg binaries: the release build pins FFmpeg 8.1.2, x264, and zlib 1.3.2 source by SHA-256, preserves libx264 plus macOS VideoToolbox/Windows Media Foundation encoding, and emits the matching corresponding-source archive with each platform package.
 
 ## Roadmap and participation
 
-Near-term priorities are to complete English coverage for the video and image libraries; establish license, signing, and reproducibility gates for macOS and Windows installers; continue calibrating target-size and quality protection with anonymous fixtures; and stabilize DOCX/PDF/XLSX support without changing document layout or formatting.
+Near-term priorities are to complete English coverage for the video and image libraries; close the remaining owner-certificate and artifact-evidence gates for macOS and Windows packages; continue calibrating target-size and quality protection with anonymous fixtures; and stabilize DOCX/PDF/XLSX support without changing document layout or formatting.
 
 Reproducible [bug reports](https://github.com/roanpy/doc-media-toolkit/issues/new?template=bug_report.yml) and focused [feature requests](https://github.com/roanpy/doc-media-toolkit/issues/new?template=feature_request.yml) are welcome. Remove confidential content, personal information, and local paths from documents, screenshots, and logs. Report security issues privately under the [security policy](SECURITY.md).
 
 ## Documentation
 
+- [Installation, platform support, and upgrade safety](docs/INSTALL.md)
 - [Complete Chinese user guide](docs/USER_GUIDE.zh-CN.md)
 - [Architecture and module boundaries](docs/ARCHITECTURE.md)
 - [Smart target-size compression specification](docs/SMART_TARGET_COMPRESSION.md)
 - [Quality and release gates](docs/QUALITY_GATES.md)
 - [Release and packaging guide](docs/RELEASE.md)
+- [0.2.1 release notes](docs/releases/v0.2.1.md) · [withdrawn 0.2.0 candidate audit](docs/releases/v0.2.0-candidate-audit.md)
 - [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 ## Development and validation

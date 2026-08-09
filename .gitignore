@@ -17,5 +17,6 @@ tmp_ui_checks/
 benchmark-results/
 benchmark-self-check.*
 release-audit.*
+release-assets/
 design-prototype/node_modules/
 design-prototype/dist/
