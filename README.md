@@ -5,7 +5,7 @@
 
   English · [简体中文](README.zh-CN.md)
 
-  [![Status: Stable](https://img.shields.io/badge/status-stable-brightgreen.svg)](#project-status)
+  [![Source status: Stable](https://img.shields.io/badge/source-stable-brightgreen.svg)](#project-status)
   [![Binary packages: gated](https://img.shields.io/badge/binaries-signing%20%26%20license%20gated-orange.svg)](docs/INSTALL.md)
   [![Version 0.2.1](https://img.shields.io/badge/version-0.2.1-2563eb.svg)](src/pptx_tools/__init__.py)
   [![Python 3.10–3.13](https://img.shields.io/badge/Python-3.10--3.13-3776AB.svg?logo=python&logoColor=white)](pyproject.toml)
