@@ -86,9 +86,17 @@ class StandaloneBuildTests(unittest.TestCase):
             (root / "COPYING.GPLv3").write_text("gpl", encoding="utf-8")
             args: list[str] = []
 
-            with patch(
-                "scripts.build_standalone.resolve_binary",
-                side_effect=lambda name: {"ffmpeg": ffmpeg, "ffprobe": ffprobe}[name],
+            with (
+                patch(
+                    "scripts.build_standalone.resolve_binary",
+                    side_effect=lambda name: {"ffmpeg": ffmpeg, "ffprobe": ffprobe}[
+                        name
+                    ],
+                ),
+                patch.dict(
+                    os.environ,
+                    {"PPTX_TOOLS_FFMPEG_LICENSE_DIR": ""},
+                ),
             ):
                 add_optional_ffmpeg_binaries(
                     args,
@@ -114,6 +122,10 @@ class StandaloneBuildTests(unittest.TestCase):
                         "ffmpeg": ffmpeg,
                         "ffprobe": ffprobe,
                     }[name],
+                ),
+                patch.dict(
+                    os.environ,
+                    {"PPTX_TOOLS_FFMPEG_LICENSE_DIR": ""},
                 ),
                 self.assertRaisesRegex(SystemExit, "LICENSE/COPYING"),
             ):
@@ -141,6 +153,10 @@ class StandaloneBuildTests(unittest.TestCase):
                         "ffmpeg": ffmpeg,
                         "ffprobe": ffprobe,
                     }[name],
+                ),
+                patch.dict(
+                    os.environ,
+                    {"PPTX_TOOLS_FFMPEG_LICENSE_DIR": ""},
                 ),
                 self.assertRaisesRegex(SystemExit, "LICENSE/COPYING"),
             ):

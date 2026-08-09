@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import os
 import re
 import shutil
 import sys
@@ -76,6 +75,7 @@ from pptx_video_compactor import (
 )
 from pptx_quality_audit import QualityAuditWorker
 from pptx_tools.app_logging import configure_app_logging
+from pptx_tools.language import detect_language as detect_system_language
 from pptx_tools.image_manager import ImageProject
 from pptx_tools.ui_theme import (
     SHARED_DIALOG_QSS,
@@ -464,12 +464,7 @@ STRINGS = {
 
 
 def detect_language() -> str:
-    override = os.environ.get("PPTX_VIDEO_COMPACTOR_LANG", "").strip().lower()
-    if override.startswith("zh"):
-        return "zh"
-    if override.startswith("en"):
-        return "en"
-    return "en"
+    return detect_system_language("PPTX_VIDEO_COMPACTOR_LANG")
 
 
 def localize_progress_label(label: str, language: str) -> str:

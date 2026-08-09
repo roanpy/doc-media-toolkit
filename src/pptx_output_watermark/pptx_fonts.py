@@ -4,7 +4,7 @@ import html
 import re
 import shutil
 import sys
-import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as ET
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path

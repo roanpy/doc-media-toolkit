@@ -885,7 +885,7 @@ class VideoProjectTest(unittest.TestCase):
             }
             family = {
                 "id": "complete-family",
-                "name": "***REMOVED***",
+                "name": "示例生产线",
                 "category": "",
                 "source_variant_id": variant["id"],
                 "active_variant_id": variant["id"],
@@ -906,7 +906,7 @@ class VideoProjectTest(unittest.TestCase):
 
             self.assertIs(
                 project._family_by_damaged_prefix(
-                    "***REMOVED***",
+                    "示例生产线",
                     damaged,
                     sha256_file(damaged),
                     damaged_metadata,
@@ -925,7 +925,7 @@ class VideoProjectTest(unittest.TestCase):
             deck = root / "damaged.pptx"
             make_video_pptx(deck, prefix, "Damaged")
             presentation = Presentation(deck)
-            presentation.slides[0].shapes[-1].name = "***REMOVED***"
+            presentation.slides[0].shapes[-1].name = "示例生产线"
             presentation.save(deck)
             with (
                 patch(
@@ -2503,18 +2503,18 @@ class VideoProjectTest(unittest.TestCase):
                 for variant in family["variants"]
             }
 
-            moved = project.move_family(family["id"], "产品/PLC")
+            moved = project.move_family(family["id"], "示例/分类")
 
             self.assertEqual(
                 set(moved),
                 {
-                    project.root / "media" / "产品" / "PLC" / path.name
+                    project.root / "media" / "示例" / "分类" / path.name
                     for path in originals.values()
                 },
             )
             self.assertTrue(all(not path.exists() for path in originals.values()))
             self.assertTrue(all(path.is_file() for path in moved))
-            self.assertEqual(family["category"], "产品/PLC")
+            self.assertEqual(family["category"], "示例/分类")
             self.assertEqual(
                 {project.variant_path(variant) for variant in family["variants"]},
                 set(moved),
@@ -2527,7 +2527,7 @@ class VideoProjectTest(unittest.TestCase):
                     project.move_family(family["id"], "项目/示例项目")
 
             self.assertTrue(all(path.is_file() for path in moved))
-            self.assertEqual(family["category"], "产品/PLC")
+            self.assertEqual(family["category"], "示例/分类")
             self.assertEqual(
                 {project.variant_path(variant) for variant in family["variants"]},
                 set(moved),
@@ -3000,13 +3000,13 @@ class LibraryCleanupTest(unittest.TestCase):
             }
             first = add_family_with_variants(
                 library,
-                "***REMOVED***",
+                "示例视频",
                 [{"profile": "original"}],
                 content_fingerprint=source,
             )
             second = add_family_with_variants(
                 library,
-                "***REMOVED***_1",
+                "示例视频_1",
                 [{"profile": "high"}],
                 content_fingerprint=compressed,
             )

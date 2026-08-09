@@ -1,6 +1,8 @@
-# PPTX 高清回填质量档位 Implementation Plan
+# PPTX 高清回填质量档位 Implementation Plan（Archived）
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> This is a historical implementation record, not a current release
+> specification. Current validation and release gates live in
+> [`docs/QUALITY_GATES.md`](../../QUALITY_GATES.md) and [`docs/RELEASE.md`](../../RELEASE.md).
 
 **Goal:** 给 PPTX 高清回填加质量档位（最佳/高质量/均衡），默认最佳=现状，其余档按（分辨率上限, CRF, 码率上限, 音频码率）输出，免去回填后二次压缩。
 
@@ -16,7 +18,7 @@
 - 不降低帧率；图片回填不在范围；不加 CLI 参数。
 - 测试一律用 `.venv/bin/python`（禁止系统/Homebrew python）；ruff 用 `/opt/homebrew/bin/ruff`。
 - 提交仅本地；**不推送 GitHub、不触发 CI、不打包 DMG**。
-- 全量验证：`.venv/bin/python scripts/run_tests_isolated.py`（现 279 绿）。
+- 当时的全量验证使用 `.venv/bin/python scripts/run_tests_isolated.py`；当前测试数量和结果以该脚本的实际输出为准。
 
 ## 关键现有件（已核实）
 

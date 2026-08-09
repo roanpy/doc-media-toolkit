@@ -59,7 +59,8 @@ GPL 构建，并同时发布 FFmpeg 及链接的 GPL 组件精确源码、构建
 除非证明 H.264 画质与硬件链路等价，否则不以 LGPL-only 构建替换当前能力。
 
 The replacement release path now uses `scripts/build_ffmpeg_runtime.sh`. It pins the
-official FFmpeg 8.1.2 archive, x264 commit, and zlib 1.3.2 archive with SHA-256, builds only the required
+official FFmpeg 8.1.2 archive, x264 commit, and zlib 1.3.2 archive with SHA-256 (with an upstream
+`madler/zlib` download fallback when zlib.net is unavailable), builds only the required
 GPL runtime plus VideoToolbox on macOS or Media Foundation on Windows, and emits a
 platform-specific corresponding-source archive containing all three pristine source
 archives, the build script, an empty patch record, the exact configure arguments,

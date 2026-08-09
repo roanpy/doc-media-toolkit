@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import io
+import tarfile
 import tempfile
 import unittest
 from argparse import Namespace
@@ -150,6 +152,38 @@ class LocalReleaseToolsTest(unittest.TestCase):
         self.assertEqual(result["status"], "fail")
         self.assertIn("--evidence", result["detail"])
 
+    def test_public_binary_sidecars_require_real_content(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            empty = root / "empty.json"
+            empty.write_text("{}", encoding="utf-8")
+            sidecar = {"path": empty.name, "sha256": release_audit._sha256(empty)}
+
+            self.assertTrue(
+                release_audit._validate_sbom(
+                    root,
+                    sidecar,
+                    label="sbom",
+                    artifact_sha256="0" * 64,
+                )
+            )
+            self.assertTrue(
+                release_audit._validate_native_inventory(
+                    root,
+                    sidecar,
+                    label="native_inventory",
+                    artifact_sha256="0" * 64,
+                )
+            )
+            self.assertTrue(
+                release_audit._validate_malware_report(
+                    root,
+                    sidecar,
+                    label="malware",
+                    artifact_sha256="0" * 64,
+                )
+            )
+
     def test_public_binary_audit_cannot_skip_dependency_scan(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -190,6 +224,34 @@ class LocalReleaseToolsTest(unittest.TestCase):
                 path.write_bytes(content)
                 return {"path": name, "sha256": release_audit._sha256(path)}
 
+            def json_sidecar(
+                name: str,
+                value: dict[str, object],
+                *,
+                artifact_sha256: str | None = None,
+            ) -> dict[str, str]:
+                descriptor = sidecar(name, json.dumps(value).encode("utf-8"))
+                if artifact_sha256 is not None:
+                    descriptor["artifact_sha256"] = artifact_sha256
+                return descriptor
+
+            def source_sidecar(name: str) -> dict[str, str]:
+                path = root / name
+                with tarfile.open(path, "w:gz") as archive:
+                    for member_name in (
+                        "source-root/build_ffmpeg_runtime.sh",
+                        "source-root/changes.diff",
+                        "source-root/SHA256SUMS",
+                        "source-root/BUILD-INFO.txt",
+                        "source-root/sources/ffmpeg-8.1.2.tar.xz",
+                        "source-root/sources/x264-b35605.tar.bz2",
+                        "source-root/sources/zlib-1.3.2.tar.xz",
+                    ):
+                        info = tarfile.TarInfo(member_name)
+                        info.size = 1
+                        archive.addfile(info, fileobj=io.BytesIO(b"x"))
+                return {"path": name, "sha256": release_audit._sha256(path)}
+
             artifact = sidecar("Doc-Media-Toolkit-macOS-arm64.dmg", b"dmg")
             evidence = {
                 "schema": "doc-media-toolkit.public-binary-evidence.v1",
@@ -211,10 +273,39 @@ class LocalReleaseToolsTest(unittest.TestCase):
                         },
                         "malware_scan": {
                             "status": "clean",
-                            "report": sidecar("malware.txt"),
+                            "report": json_sidecar(
+                                "malware.json",
+                                {
+                                    "schema": "doc-media-toolkit.malware-scan.v1",
+                                    "status": "clean",
+                                    "scanner": "test-scanner",
+                                    "exit_code": 0,
+                                    "artifact_sha256": artifact["sha256"],
+                                },
+                            ),
                         },
-                        "sbom": sidecar("sbom.cdx.json", b"{}"),
-                        "native_inventory": sidecar("native-inventory.json", b"{}"),
+                        "sbom": json_sidecar(
+                            "sbom.cdx.json",
+                            {
+                                "bomFormat": "CycloneDX",
+                                "specVersion": "1.5",
+                                "components": [{"name": "test-component"}],
+                            },
+                            artifact_sha256=artifact["sha256"],
+                        ),
+                        "native_inventory": json_sidecar(
+                            "native-inventory.json",
+                            {
+                                "schema": "doc-media-toolkit.native-inventory.v1",
+                                "entries": [
+                                    {
+                                        "path": "Contents/Frameworks/test.dylib",
+                                        "sha256": "0" * 64,
+                                    }
+                                ],
+                            },
+                            artifact_sha256=artifact["sha256"],
+                        ),
                         "ffmpeg": {
                             "bundled": True,
                             "version": "8.1.2",
@@ -222,8 +313,8 @@ class LocalReleaseToolsTest(unittest.TestCase):
                                 "--enable-gpl --enable-version3 --enable-libx264"
                             ),
                             "license": "GPL-3.0-or-later",
-                            "corresponding_source": sidecar(
-                                "ffmpeg-corresponding-source.tar.xz", b"source"
+                            "corresponding_source": source_sidecar(
+                                "ffmpeg-corresponding-source.tar.gz"
                             ),
                         },
                     }
@@ -269,6 +360,29 @@ class LocalReleaseToolsTest(unittest.TestCase):
         self.assertTrue(
             any("corresponding_source" in finding for finding in result["findings"])
         )
+
+    def test_corresponding_source_rejects_empty_required_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archive_path = Path(temp_dir) / "source.tar.gz"
+            with tarfile.open(archive_path, "w:gz") as archive:
+                for member_name in (
+                    "source-root/build_ffmpeg_runtime.sh",
+                    "source-root/changes.diff",
+                    "source-root/SHA256SUMS",
+                    "source-root/BUILD-INFO.txt",
+                    "source-root/sources/ffmpeg-8.1.2.tar.xz",
+                    "source-root/sources/x264-b35605.tar.bz2",
+                    "source-root/sources/zlib-1.3.2.tar.xz",
+                ):
+                    info = tarfile.TarInfo(member_name)
+                    info.size = 0 if member_name.endswith("BUILD-INFO.txt") else 1
+                    archive.addfile(info, fileobj=io.BytesIO(b"x" * info.size))
+
+            findings = release_audit._validate_corresponding_source(
+                archive_path, label="source"
+            )
+
+        self.assertTrue(any("empty required files" in finding for finding in findings))
 
 
 if __name__ == "__main__":
