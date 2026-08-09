@@ -124,7 +124,7 @@ STRINGS = {
             "1. 拖入或添加一个或多个 DOCX / PDF / PPTX 文件。\n"
             "2. DOCX / PDF 只能导出为 PDF；混合队列里即使全局选择 PPTX，也会按当前形式导出为 PDF。\n"
             "3. 图片清晰度只作用于图片化 PDF / 图片化 PPTX；可编辑模式尽量保留原始图片与文档结构。\n"
-            "4. 图片型 PPTX 可开启视频回贴；需要 FFmpeg，打包版会内置。\n"
+            "4. 图片型 PPTX 可开启视频回贴；正式签名包将内置固定源码构建的 FFmpeg 8.1.2。\n"
             "5. Windows 按文件类型优先使用 PowerPoint/Word/WPS 导出 PDF，失败后再使用 LibreOffice；macOS 中 PPTX 可用 Keynote 兜底，DOCX 可用 Pages 兜底。\n"
             "6. 切换功能时会保留已选文件、当前设置和日志。"
         ),
@@ -166,7 +166,7 @@ STRINGS = {
             "1. Drop or add one or more DOCX, PDF, or PPTX files.\n"
             "2. DOCX and PDF can only export to PDF. In mixed queues, they still export as PDF even if the global format is PPTX.\n"
             "3. Image quality only applies to image-based PDF / image-based PPTX; editable modes keep original structure and source images where possible.\n"
-            "4. Image-based PPTX video reinsertion needs FFmpeg; packaged builds bundle it.\n"
+            "4. Image-based PPTX video reinsertion uses the source-pinned FFmpeg 8.1.2 bundled with signed release packages.\n"
             "5. Windows tries PowerPoint/Word/WPS by source type first, then LibreOffice; on macOS, LibreOffice stays primary while PPTX can fall back to Keynote and DOCX can fall back to Pages.\n"
             "6. If Keynote or Pages is installed but Automation permission is missing, the app opens System Settings instead of misreporting the engine as missing.\n"
             "7. Switching tools keeps selected files, current settings, and logs."
@@ -303,14 +303,14 @@ HELP_SECTIONS = {
             <ul>
               <li>PPTX 的 PDF/图片化导出优先使用 LibreOffice，缺失或短时不可用时回退 Keynote；DOCX 优先使用 LibreOffice，缺失或短时不可用时回退 Pages。这些外部应用都不内置。</li>
               <li>如果 Keynote 或 Pages 已安装但没有 Automation 权限，界面会提示打开系统设置，不再混淆成“未安装”。</li>
-              <li>视频处理使用 FFmpeg/FFprobe，打包版会内置。</li>
+              <li>正式签名包将内置由固定 FFmpeg 8.1.2、x264 与 zlib 源码构建的 FFmpeg/FFprobe；同一 Release 提供对应源码、构建记录和哈希。</li>
               <li>水印导出的临时目录也会在下次启动时回收异常退出残留。</li>
             </ul>
             <h3>Windows</h3>
             <ul>
               <li>PPTX 水印导出优先使用 Microsoft PowerPoint/WPS COM；DOCX 优先使用 Microsoft Word/WPS COM；最后回退 LibreOffice。</li>
               <li>WPS 如果未注册 COM，可先打开一次 WPS 或修复安装；也可设置 <code>PPTX_TOOLS_WPP</code> 指向 <code>wpp.exe</code>。</li>
-              <li>Windows GUI 打包会带 Qt 插件和 FFmpeg essentials，one-file 超过 200MB 是正常范围。</li>
+              <li>Windows 正式包使用可替换的 portable onedir 结构，内置 FFmpeg 8.1.2，并保留 Media Foundation 硬件编码和 libx264 CPU 回退。</li>
             </ul>
             <h3>CLI</h3>
             <ul>
@@ -425,14 +425,14 @@ HELP_SECTIONS = {
             <ul>
               <li>PPTX PDF/image export prefers LibreOffice and falls back to Keynote when needed. DOCX prefers LibreOffice and falls back to Pages. External engines are not bundled.</li>
               <li>If Keynote or Pages is installed but Automation permission is missing, the UI should offer a System Settings action instead of a download link.</li>
-              <li>Video handling uses bundled FFmpeg/FFprobe in packaged builds.</li>
+              <li>Signed release packages bundle FFmpeg/FFprobe built from pinned FFmpeg 8.1.2, x264, and zlib source. The same Release carries corresponding source, build records, and hashes.</li>
               <li>Watermark temp roots are also reaped on the next launch after abnormal termination.</li>
             </ul>
             <h3>Windows</h3>
             <ul>
               <li>Watermark export tries PowerPoint COM, then WPS COM, then LibreOffice fallback.</li>
               <li>If WPS COM is not registered, open/repair WPS or set <code>PPTX_TOOLS_WPP</code> to <code>wpp.exe</code>.</li>
-              <li>Windows one-file builds above 200MB are expected when Qt and FFmpeg are bundled.</li>
+              <li>The public Windows package uses a replaceable portable onedir layout with Media Foundation hardware encoding and libx264 CPU fallback.</li>
             </ul>
             <h3>CLI</h3>
             <ul>
@@ -520,7 +520,8 @@ HELP_EXTRA_SECTIONS = {
               <li>当前版本：<code>{version}</code>。</li>
               <li>项目源码采用 MIT 许可证，仓库地址为 <code>github.com/roanpy/doc-media-toolkit</code>；第三方组件仍适用各自许可证。</li>
               <li>项目由所有者主导，主要使用 OpenAI Codex 协助开发，并由 Google Gemini 与 Anthropic Claude Code 辅助和交叉核验；所有产出均由项目所有者审核、测试和维护。</li>
-              <li>打包版会在 <code>licenses/</code> 内携带项目、Python、Qt、资源和 Python 依赖许可；FFmpeg 还适用所选二进制自身的 LGPL/GPL 条款。</li>
+              <li>正式包会在 <code>licenses/</code> 内携带项目、Python、Qt、资源和 Python 依赖许可；内置 FFmpeg/x264 适用 GPL，并在同一 Release 提供对应源码和构建证据。</li>
+              <li>当前公开源码可直接使用；预构建候选在完成平台签名和公证前保持 Draft，不应绕过系统安全检查。</li>
               <li>主窗口、水印、压缩和帮助中心支持简体中文与英文；视频库和图片库业务界面当前仍以中文为主。</li>
               <li>首次启动默认使用英文；可在启动前设置 <code>PPTX_TOOLS_LANG=zh</code> 切换中文。</li>
               <li>API Key 只保留在本次运行的内存中。不开启图片输入时不会向 AI 发送预览图；不会发送完整文档、完整视频或本机路径。</li>
@@ -597,7 +598,8 @@ HELP_EXTRA_SECTIONS = {
               <li>Current version: <code>{version}</code>.</li>
               <li>The project source is MIT-licensed at <code>github.com/roanpy/doc-media-toolkit</code>. Third-party components retain their own licenses.</li>
               <li>The owner leads the project with primary development assistance from OpenAI Codex and additional generation and cross-checking from Google Gemini and Anthropic Claude Code. The owner reviews, tests, and maintains all output.</li>
-              <li>Packaged builds carry project, Python, Qt, asset, and Python dependency notices under <code>licenses/</code>. FFmpeg remains subject to the selected binary's LGPL/GPL terms.</li>
+              <li>Release packages carry project, Python, Qt, asset, and Python dependency notices under <code>licenses/</code>. Bundled FFmpeg/x264 is GPL-covered, with corresponding source and build evidence on the same Release.</li>
+              <li>The public source is usable now. Binary candidates remain Draft until platform signing and notarization are complete; do not bypass operating-system security checks.</li>
               <li>The application shell, watermark, compression, and help center support Simplified Chinese and English. Video and image library operations are currently Chinese-first.</li>
               <li>First launch defaults to English. Set <code>PPTX_TOOLS_LANG=zh</code> before launch to use Chinese.</li>
               <li>API keys stay in process memory. AI previews are sent only when image input is enabled; complete documents, complete videos, and local paths are not sent.</li>

@@ -6,6 +6,7 @@
   [English](README.md) · 简体中文
 
   [![Status: Stable](https://img.shields.io/badge/status-stable-brightgreen.svg)](#项目状态)
+  [![二进制包：门禁中](https://img.shields.io/badge/binaries-signing%20%26%20license%20gated-orange.svg)](docs/INSTALL.zh-CN.md)
   [![Version 0.2.0](https://img.shields.io/badge/version-0.2.0-2563eb.svg)](src/pptx_tools/__init__.py)
   [![Python 3.10–3.13](https://img.shields.io/badge/Python-3.10--3.13-3776AB.svg?logo=python&logoColor=white)](pyproject.toml)
   [![macOS | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey.svg)](#快速开始)
@@ -67,7 +68,13 @@ Doc Media Toolkit 面向这类文档媒体工作流：
 
 ## 快速开始
 
-推荐使用 Python 3.12。完整桌面版默认安装所需 Python 包；FFmpeg、Poppler 和办公软件运行时按所用功能与平台选择。
+> [!IMPORTANT]
+> 源码版本可以使用。macOS 和 Windows 预构建包目前作为候选产物保留，签名及产物级
+> 许可门禁通过前不公开。
+
+推荐使用 Python 3.12。源码环境会安装所需 Python 包；FFmpeg、Poppler 和办公软件
+运行时按所用功能与平台选择。已验证平台、外部运行时、升级备份和安装包可信状态见
+[安装与平台支持](docs/INSTALL.zh-CN.md)。
 
 macOS / Linux：
 
@@ -111,23 +118,27 @@ pptx-tools images --help
 
 ## 项目状态
 
-当前版本按**正式版本**发布。PPTX 压缩、水印、视频资产库及主要文档兼容能力已经过确认；图片资产管理是附加能力，尚未完成与核心功能同等级的深度实测。主窗口、水印、压缩和帮助中心支持简体中文与英文；视频库和图片库目前仍以中文为主。首次启动默认使用英文，也可在启动前设置 `PPTX_TOOLS_LANG=zh` 切换中文。
+源码项目已作为**稳定版 0.2.0**公开。PPTX 压缩、水印、视频资产库及主要文档兼容能力已经过确认；图片资产管理是附加能力，尚未完成与核心功能同等级的深度实测。主窗口、水印、压缩和帮助中心支持简体中文与英文；视频库和图片库目前仍以中文为主。首次启动默认使用英文，也可在启动前设置 `PPTX_TOOLS_LANG=zh` 切换中文。
 
-公开仓库名为 `doc-media-toolkit`；Python 分发包和 CLI 保留 `pptx-tools`，避免破坏现有脚本。正式签名安装包尚未作为 GitHub Release 发布。
+公开仓库名为 `doc-media-toolkit`；Python 分发包和 CLI 保留 `pptx-tools`，避免破坏现有脚本。0.2.0 的 DMG/EXE 候选在产物审计后已改回 Draft，不属于公开安装包。剩余阻塞包括 Developer ID/公证或 Authenticode 签名、GPL FFmpeg 对应源码交付、SBOM/原生库清单、恶意软件扫描证据和 Windows Qt 分发路径；详见[候选产物审计](docs/releases/v0.2.0-candidate-audit.md)。
+
+替换候选不再复用 Homebrew/Gyan FFmpeg 二进制：正式构建以 SHA-256 固定 FFmpeg 8.1.2、x264 与 zlib 1.3.2 源码，保留 libx264、macOS VideoToolbox 和 Windows Media Foundation 编码，并为每个平台包自动生成匹配的对应源码资产。
 
 ## 维护路线与参与
 
-近期优先级是：补齐视频库与图片库的中英文界面；完成 macOS/Windows 安装包的许可、签名和可复现发布门禁；用匿名测试样例继续校准目标容量与画质保护；在不改变版式和格式的前提下稳定 DOCX/PDF/XLSX 支持。
+近期优先级是：补齐视频库与图片库的中英文界面；完成 macOS/Windows 包剩余的所有者证书和产物证据门禁；用匿名测试样例继续校准目标容量与画质保护；在不改变版式和格式的前提下稳定 DOCX/PDF/XLSX 支持。
 
 欢迎提交可复现的[错误报告](https://github.com/roanpy/doc-media-toolkit/issues/new?template=bug_report.yml)或聚焦的[功能建议](https://github.com/roanpy/doc-media-toolkit/issues/new?template=feature_request.yml)。请先删除文档、截图和日志中的机密内容、个人信息及本机路径；安全问题请按[安全政策](SECURITY.md)私下报告。
 
 ## 文档
 
+- [安装、平台支持与升级安全](docs/INSTALL.zh-CN.md)
 - [完整用户指南](docs/USER_GUIDE.zh-CN.md)
 - [架构与模块边界](docs/ARCHITECTURE.md)
 - [智能目标容量压缩规格](docs/SMART_TARGET_COMPRESSION.md)
 - [质量与发布门禁](docs/QUALITY_GATES.md)
 - [发布与打包说明](docs/RELEASE.md)
+- [0.2.0 Release 草案](docs/releases/v0.2.0.md) · [候选产物审计](docs/releases/v0.2.0-candidate-audit.md)
 - [参与贡献](CONTRIBUTING.md) · [行为准则](CODE_OF_CONDUCT.md) · [第三方许可](THIRD_PARTY_NOTICES.md)
 
 ## 开发与验证

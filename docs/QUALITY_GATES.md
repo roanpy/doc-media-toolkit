@@ -87,7 +87,7 @@ pptx-tools images doctor IMAGE_LIBRARY --verify-hashes
 
 ### 5.1 本地发布前审计与压缩基准
 
-发布前在本机运行依赖/产物审计入口（不接入 GitHub Actions）：
+发布前在目标平台运行依赖/产物审计入口：
 
 ```bash
 python scripts/release_audit.py --check
@@ -97,6 +97,9 @@ python scripts/release_audit.py --check
 `uv sync --locked --dry-run`、可选 `pip-audit`
 （外部工具，缺失时降级为提示，不加入运行时依赖）、可选的 uv CycloneDX SBOM 与
 `dist/` 产物版本/哈希。详细字段与边界见 `docs/RELEASE.md`。
+公开二进制必须额外使用 `--public-binary --with-sbom ... --evidence ...`；缺少
+pip-audit、SBOM、平台签名、公证（macOS）、恶意软件扫描、原生库清单或 FFmpeg
+对应源码中的任一项都会失败关闭。普通候选构建只生成证据，不代表允许发布。
 
 压缩基准入口用于对脱敏样本复现智能目标容量结果：
 
@@ -117,7 +120,10 @@ python scripts/run_compression_benchmark.py --self-check
 - 包内 `licenses/` 包含项目、Python、Qt、字体/图标、全部运行时 Python 直接/传递
   依赖和所选 FFmpeg/LibreOffice 的匹配许可；缺一项不得发布。
 - 记录 FFmpeg `-version/-buildconf`；包含 `--enable-gpl` 的二进制必须完成对应源码
-  交付。公开 one-file 还需单独证明 Qt LGPL 替换/重链接路径和原生库许可清单。
+  交付。当前公开门禁直接拒绝 Windows one-file，正式包使用可检查、可替换的 onedir。
+- 正式候选只能使用 `scripts/build_ffmpeg_runtime.sh` 输出的 FFmpeg 8.1.2/x264/zlib
+  固定源码构建，并把该平台对应源码包与安装包放在同一 Release；Homebrew/Gyan
+  二进制不得进入正式公开包。
 - 延迟加载的 DOCX/PDF/XLSX 后端与 `pikepdf` 必须能从 PyInstaller 归档中定位；
   产物完整性以模块、运行时、签名和启动检查为准，不以 DMG 大小猜测。
 - DMG 只包含 `.app` 与 `Applications` 快捷方式，`hdiutil verify` 通过。
@@ -128,9 +134,11 @@ python scripts/run_compression_benchmark.py --self-check
   可选 SBOM 与产物哈希齐备；`pip-audit` 为外部工具，CycloneDX 由 uv 导出。
 - 跨平台产物必须在对应平台构建；PyInstaller 不支持交叉编译，macOS 本地验证
   不能当作 Windows 可运行证据。
-- macOS 产物默认 ad-hoc 签名；Developer ID 公证需单独配置 keychain profile，
-  本地审计不执行公证。Windows 产物签名需在 Windows 主机用证书完成，本地审计
-  只记录哈希，不签名。
+- macOS 候选产物默认 ad-hoc 签名；Developer ID 公证需单独配置 keychain profile。
+  Windows 产物签名需在 Windows 主机用证书完成。ad-hoc、未公证或未签名产物只能
+  留在 Draft/候选区，不能通过公开二进制门禁。
+- Release workflow 只有 `contents: read`，只上传候选 workflow artifact，不接收 tag
+  发布参数，也不包含 `gh release`。公开发布必须在独立人工复核中完成。
 - 压缩基准语料不进 Git；基准结果目录默认 `benchmark-results/`，已加入
   `.gitignore`。
 

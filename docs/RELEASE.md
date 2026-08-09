@@ -1,26 +1,34 @@
-# Release Notes
+# Release and packaging guide
+
+Public source releases and public binary releases use separate gates. The manual
+workflow builds private candidates only; it has read-only repository permission and
+contains no GitHub Release publication job.
 
 ## Artifacts
 
-Recommended package names:
+Recommended candidate package names:
 
 - `Doc Media Toolkit-macOS-arm64.dmg`
 - `Doc Media Toolkit-macOS-x64.dmg`
 - `Doc Media Toolkit-macOS-arm64.zip`
 - `Doc Media Toolkit-macOS-x64.zip`
-- `Doc Media Toolkit-windows-x64.zip`
-- `Doc Media Toolkit-windows-x64-onefile.zip`
-- `Doc Media Toolkit-windows-x64-onefile.exe`
-- `Doc Media Toolkit-cli-macOS-arm64.tar.gz`
-- `Doc Media Toolkit-cli-macOS-x64.tar.gz`
-- `Doc Media Toolkit-cli-windows-x64.zip`
-- `Doc Media Toolkit-cli-windows-x64.exe`
+- `Doc Media Toolkit-windows-x64-portable.zip`
+- `SBOM-macOS-arm64.cdx.json`
+- `SBOM-macOS-x64.cdx.json`
+- `SBOM-windows-x64.cdx.json`
+- `RELEASE-AUDIT-<platform>.md` and `.json`
+- `FFMPEG-<platform>.txt`
+- `Doc-Media-Toolkit-FFmpeg-8.1.2-<platform>-corresponding-source.tar.gz`
 
 ## Build Commands
 
 macOS GUI:
 
 ```bash
+scripts/build_ffmpeg_runtime.sh release-assets/ffmpeg-runtime
+export PPTX_TOOLS_FFMPEG="$PWD/release-assets/ffmpeg-runtime/bin/ffmpeg"
+export PPTX_TOOLS_FFPROBE="$PWD/release-assets/ffmpeg-runtime/bin/ffprobe"
+export PPTX_TOOLS_FFMPEG_LICENSE_DIR="$PWD/release-assets/ffmpeg-runtime/licenses"
 python scripts/build_standalone.py --gui --clean --target-platform macos --bundle-ffmpeg --require-ffmpeg-bundle --dmg --name "Doc Media Toolkit"
 ```
 
@@ -30,22 +38,25 @@ Optional custom DMG path:
 python scripts/build_standalone.py --gui --target-platform macos --bundle-ffmpeg --require-ffmpeg-bundle --dmg --dmg-output "/absolute/path/Doc Media Toolkit-macOS-arm64.dmg" --name "Doc Media Toolkit"
 ```
 
-Optional complete offline build:
+Optional private/internal complete offline build:
 
 ```bash
 python scripts/build_standalone.py --gui --target-platform macos --bundle-ffmpeg --require-ffmpeg-bundle --bundle-libreoffice --require-libreoffice-bundle --dmg --name "Doc Media Toolkit"
 ```
 
 Use `--libreoffice-root` or `PPTX_TOOLS_LIBREOFFICE_ROOT` to select the complete
-runtime. LibreOffice bundling is intentionally limited to onedir builds.
+runtime. LibreOffice bundling is intentionally limited to onedir builds. Do not
+publish this variant until its complete notices and matching source-code access
+have passed a separate artifact-level license audit.
 
-Windows GUI one-file:
+Windows GUI onedir candidate:
 
 ```powershell
-python scripts\build_standalone.py --windows-onefile --bundle-ffmpeg --require-ffmpeg-bundle --name "Doc Media Toolkit"
+python scripts\build_standalone.py --gui --target-platform windows --bundle-ffmpeg --require-ffmpeg-bundle --name "Doc Media Toolkit"
+Compress-Archive -Path "dist\Doc Media Toolkit" -DestinationPath "Doc Media Toolkit-windows-x64-portable.zip"
 ```
 
-The Windows GUI build defaults to `assets/app_icon.ico`, and the packaged app name defaults to `Doc Media Toolkit` when `--name` is omitted.
+The Windows GUI build defaults to `assets/app_icon.ico`, and the packaged app name defaults to `Doc Media Toolkit` when `--name` is omitted. `--windows-onefile` remains available for private testing, but the public-binary gate rejects it because the current one-file layout does not provide the verified Qt replacement/relinking path required by this project.
 
 CLI one-file:
 
@@ -69,7 +80,7 @@ or auto-update the formal application.
 
 Notes:
 
-- `--windows-onefile` is only for Windows GUI.
+- `--windows-onefile` is only for private Windows GUI testing.
 - Windows CLI should still use `--cli --onefile`, but must be built on a Windows host.
 - `--dmg` is only for macOS GUI onedir builds.
 
@@ -86,7 +97,9 @@ Notes:
 - GUI windows initialize the shared UI font before `QMainWindow` construction, so packaged builds and offscreen automation should not emit the old `Sans Serif` alias warning.
 - Standard packages do not bundle Office/WPS/LibreOffice/Keynote/Pages. An
   explicit `--bundle-libreoffice` onedir build includes the complete LibreOffice
-  runtime and its license notices.
+  runtime and its license notices for private/internal use; public redistribution
+  additionally requires independent verification of its matching source-access
+  obligations.
 - Every standalone build bundles the project MIT license, third-party inventory,
   Python runtime license, Qt LGPL/GPL texts, asset licenses, and installed Python
   package metadata/license files under `licenses/`; missing required notices fail
@@ -97,7 +110,7 @@ Notes:
 - macOS fallback checks Automation permission separately from install state. If Keynote or Pages is installed but not authorized, the GUI should offer a System Settings action instead of a download link.
 - `PDF` input bypasses external PDF export engines and goes straight into editable-PDF watermarking or image-PDF rebuilding.
 - `pypdfium2` replaces external `pdftoppm`.
-- Windows release builds should use FFmpeg essentials and avoid accidentally bundling oversized full static binaries. A one-file executable larger than 200MB is acceptable when PySide6 and FFmpeg are bundled.
+- Public candidates must use `scripts/build_ffmpeg_runtime.sh`, not a Homebrew or Gyan prebuilt binary. The script pins FFmpeg 8.1.2, x264, and zlib 1.3.2 sources by SHA-256, enables libx264 plus VideoToolbox on macOS or Media Foundation on Windows, records the exact configuration, and emits the matching corresponding-source archive. Public Windows distribution uses an onedir portable ZIP so Qt libraries remain replaceable and inspectable.
 - Public one-file distribution remains blocked until the Qt LGPL replacement/relinking path and the exact native-library inventory are verified. Prefer onedir for the first public binary release.
 - macOS local packages are not notarized unless Developer ID signing and notarization are configured separately.
 - macOS builds copy `pptx_tools.__version__` into `CFBundleShortVersionString` and `CFBundleVersion`, use `com.roanpy.doc-media-toolkit` as the bundle identifier, then re-sign and strictly verify the app before DMG creation.
@@ -115,7 +128,7 @@ Notes:
 - Video library preferences use platform-native Qt settings. Rotating application logs remain under the platform application-data directory.
 - Libraries keep a last-valid `video-project.json.bak`, reject stale concurrent saves, and relink renamed or moved video files by SHA-256.
 - Video and image cleanup use a recoverable intent log before moving files. New quarantine paths are project-relative, restore verifies SHA-256, and any path outside the managed media/cleanup roots fails closed.
-- Windows release builds pin the FFmpeg essentials archive and verify its SHA-256. Release jobs smoke-launch the GUI, verify bundled tools and macOS DMG/signature structure, and publish per-platform `SHA256SUMS` files.
+- Candidate jobs build FFmpeg 8.1.2, x264, and zlib 1.3.2 from pinned, hashed source; smoke-launch the GUI; verify bundled tools and macOS DMG/signature structure; and emit the corresponding-source archive, per-platform checksums, SBOMs, native-file inventories, dependency audits, and FFmpeg build information. They never publish a GitHub Release.
 - Windows release builds download Poppler `26.02.0-0` from the pinned `oschwartz10612/poppler-windows` release and verify SHA-256 (`993e4a94376ed712fafc7058d724ea0b943d118bbd2305cd9ed55174eb85cda5`) before PDF tests. Poppler remains a build/test runtime and is not bundled into the standard app.
 - Watermark, compression, video-library, and image-library UI logs share the same rotating application log.
 - Both `ci.yml` and `release.yml` are manual-only. Pushing commits or tags does not consume Actions minutes; a maintainer must explicitly dispatch a workflow. Both workflows enforce `ruff check src tests scripts` and `ruff format --check src tests scripts` before tests/builds; Markdown examples are reviewed separately and are not treated as Python source.
@@ -130,6 +143,10 @@ on each build host before producing a release artifact.
 ```bash
 python scripts/release_audit.py --check
 python scripts/release_audit.py --check --with-sbom dist/sbom.json
+python scripts/release_audit.py --check --public-binary \
+  --dist-dir release-assets \
+  --with-sbom release-assets/sbom.cdx.json \
+  --evidence release-assets/public-binary-evidence.json
 ```
 
 `release_audit.py` covers:
@@ -142,6 +159,11 @@ python scripts/release_audit.py --check --with-sbom dist/sbom.json
   with `--with-sbom`.
 - Packaged binary version (from `pptx_tools.__version__`) plus SHA-256 hashes for
   every file under `dist/`.
+- Fail-closed public-binary evidence validation with `--public-binary`. This mode
+  requires pip-audit, a generated SBOM, artifact hashes, valid signature evidence,
+  notarization evidence for macOS, a clean malware-scan report, native inventory,
+  and complete bundled-FFmpeg source-delivery evidence. Windows one-file packages
+  are rejected.
 
 It writes a Markdown checklist (`release-audit.md`) and a JSON sidecar. A dirty
 working tree fails the audit so the package can be traced to a reproducible commit.
@@ -162,7 +184,21 @@ manifest are NOT committed to Git; reports keep file names and content hashes bu
 write absolute input paths. Contract:
 `docs/COMPRESSION_BENCHMARK.md`.
 
-### Signing & notarization boundaries
+### Public-binary evidence schema
+
+`--evidence` accepts JSON with schema
+`doc-media-toolkit.public-binary-evidence.v1`. Every item under `artifacts` records
+the artifact `path`, `sha256`, `platform`, `architecture`, and `package_type`, plus
+a trusted signature type (`developer-id` or `authenticode`) and verified sidecar
+files for `signature`, `notarization` on macOS, `malware_scan`,
+`sbom`, and `native_inventory`. A bundled FFmpeg entry also records `version`, full
+`configuration`, `license`, and a hashed `corresponding_source` archive. Paths are
+resolved inside `--dist-dir`; path escape, missing files, or hash mismatches fail.
+
+The evidence file is an index of independently produced reports, not a substitute
+for signature, notarization, malware, or legal review.
+
+### Signing, FFmpeg, and notarization boundaries
 
 - Cross-platform artifacts must be built on the target platform; PyInstaller does
   not cross-compile. macOS local validation is not evidence that Windows builds run.
@@ -177,6 +213,11 @@ write absolute input paths. Contract:
 - Source licensing and binary licensing are separate gates. Follow
   `docs/LICENSING.md`; an FFmpeg build containing `--enable-gpl` requires the
   corresponding GPL source-delivery obligations for that exact binary.
+- The preferred product path is a repeatable, source-pinned minimal GPL FFmpeg build because
+  the compression quality contract depends on libx264. The release source bundle
+  must include the exact FFmpeg and linked GPL component sources, build scripts,
+  patches, and recorded configuration for each platform. Merely linking to an
+  upstream commit or including the GPL text does not satisfy this repository's gate.
 - Benchmark corpora (samples and manifest) must live outside the working tree and
   are git-ignored. Cross-platform benchmark results must be produced on the matching
   platform because GPU probing, FFmpeg paths, and encoder availability are
