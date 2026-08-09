@@ -43,6 +43,19 @@ def main() -> int:
     if not svg_path.exists():
         raise SystemExit(f"Missing SVG icon: {svg_path}")
 
+    generated_paths = (
+        assets_dir / "app_icon.png",
+        assets_dir / "app_icon.icns",
+        assets_dir / "app_icon.ico",
+    )
+    cover_svg_path = assets_dir / "app_cover.svg"
+    if cover_svg_path.exists():
+        generated_paths += (assets_dir / "app_cover.png",)
+    if all(path.is_file() for path in generated_paths):
+        for path in generated_paths:
+            print(path)
+        return 0
+
     renderer = QSvgRenderer(str(svg_path))
     if not renderer.isValid():
         raise SystemExit(f"Invalid SVG icon: {svg_path}")
@@ -52,7 +65,6 @@ def main() -> int:
     save_image(base_image, assets_dir / "app_icon.icns", b"icns")
     save_image(render_svg(renderer, 256), assets_dir / "app_icon.ico", b"ico")
 
-    cover_svg_path = assets_dir / "app_cover.svg"
     if cover_svg_path.exists():
         cover_renderer = QSvgRenderer(str(cover_svg_path))
         if not cover_renderer.isValid():
