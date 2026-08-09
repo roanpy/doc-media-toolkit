@@ -37,7 +37,7 @@ sha256_file() {
 
 download_verified() {
   local url="$1" destination="$2" expected="$3"
-  curl --fail --location --retry 3 --output "$destination" "$url"
+  curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 --output "$destination" "$url"
   local actual
   actual="$(sha256_file "$destination")"
   if [[ "$actual" != "$expected" ]]; then
@@ -51,7 +51,7 @@ download_verified_any() {
   shift 2
   local url actual
   for url in "$@"; do
-    if ! curl --fail --location --retry 3 --output "$destination" "$url"; then
+    if ! curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 --output "$destination" "$url"; then
       echo "Download failed for $(basename "$destination") from $url; trying the next pinned source." >&2
       continue
     fi
