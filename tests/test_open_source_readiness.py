@@ -82,6 +82,7 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertNotIn("release_tag", workflow)
         self.assertNotIn("gh release", workflow)
         self.assertNotIn("--windows-onefile", workflow)
+        self.assertIn("- macos", workflow)
         self.assertIn("scripts/build_ffmpeg_runtime.sh", workflow)
         self.assertNotIn("GyanD/codexffmpeg", workflow)
 

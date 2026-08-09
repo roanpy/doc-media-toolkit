@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - windows
+          - macos
           - all
 
 env:
@@ -25,7 +26,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.build_platform == 'windows' && '{"include":[{"os":"windows-2025-vs2026","platform":"windows-x64"}]}' || '{"include":[{"os":"macos-15-intel","platform":"macos-x64"},{"os":"macos-14","platform":"macos-arm64"},{"os":"windows-2025-vs2026","platform":"windows-x64"}]}') }}
+      matrix: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.build_platform == 'windows' && '{"include":[{"os":"windows-2025-vs2026","platform":"windows-x64"}]}' || github.event_name == 'workflow_dispatch' && inputs.build_platform == 'macos' && '{"include":[{"os":"macos-15-intel","platform":"macos-x64"},{"os":"macos-14","platform":"macos-arm64"}]}' || '{"include":[{"os":"macos-15-intel","platform":"macos-x64"},{"os":"macos-14","platform":"macos-arm64"},{"os":"windows-2025-vs2026","platform":"windows-x64"}]}') }}
 
     steps:
       - name: Check out repository
