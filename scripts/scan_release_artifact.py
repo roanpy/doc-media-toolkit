@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -99,14 +100,27 @@ def _run(command: list[str]) -> tuple[int | None, str, str]:
     return result.returncode, result.stdout[-4000:], result.stderr[-4000:]
 
 
-def _redact_output(text: str, artifact: Path) -> str:
-    candidates = {
-        str(artifact): "<artifact>",
-        str(artifact.absolute()): "<artifact>",
-        str(artifact.parent): "<artifact-dir>",
-        str(artifact.parent.absolute()): "<artifact-dir>",
-        str(artifact.parent.resolve()): "<artifact-dir>",
-    }
+def _redact_output(text: str, artifact: Path, *aliases: Path) -> str:
+    candidates: dict[str, str] = {}
+    for path in (artifact, *aliases):
+        candidates.update(
+            {
+                str(path): "<artifact>",
+                str(path.absolute()): "<artifact>",
+                str(path.parent): "<artifact-dir>",
+                str(path.parent.absolute()): "<artifact-dir>",
+                str(path.parent.resolve()): "<artifact-dir>",
+            }
+        )
+    # Windows runners may stringify the same temporary directory through a
+    # short (RUNNER~1) or long user path depending on whether it was resolved.
+    # Redact both separator styles and path casing so scanner output cannot
+    # leak the host temporary directory.
+    normalized: dict[str, str] = {}
+    for value, replacement in candidates.items():
+        for variant in {value, value.replace("\\", "/"), value.replace("/", "\\")}:
+            normalized[variant] = replacement
+    candidates = normalized
     for value, replacement in list(candidates.items()):
         if value.startswith("/private/"):
             candidates[value.removeprefix("/private")] = replacement
@@ -114,6 +128,8 @@ def _redact_output(text: str, artifact: Path) -> str:
         candidates.items(), key=lambda item: -len(item[0])
     ):
         text = text.replace(value, replacement)
+        if os.name == "nt":
+            text = re.sub(re.escape(value), replacement, text, flags=re.IGNORECASE)
     return text
 
 
@@ -122,7 +138,9 @@ def scan_artifact(
     *,
     scanner: str | None = None,
 ) -> dict[str, Any]:
-    artifact = artifact.expanduser().resolve()
+    artifact_argument = artifact.expanduser()
+    artifact_absolute = artifact_argument.absolute()
+    artifact = artifact_absolute.resolve()
     if not artifact.is_file() and not artifact.is_dir():
         raise ValueError(f"artifact does not exist: {artifact}")
     scanner_path, scanner_kind = find_scanner(scanner)
@@ -150,8 +168,12 @@ def scan_artifact(
     command = _command(scanner_path, scanner_kind, artifact)
     exit_code, stdout, stderr = _run(command)
     report["exit_code"] = exit_code
-    report["stdout_tail"] = _redact_output(stdout, artifact)
-    report["stderr_tail"] = _redact_output(stderr, artifact)
+    report["stdout_tail"] = _redact_output(
+        stdout, artifact, artifact_argument, artifact_absolute
+    )
+    report["stderr_tail"] = _redact_output(
+        stderr, artifact, artifact_argument, artifact_absolute
+    )
     if exit_code == 0:
         report["status"] = "clean"
     elif exit_code == 1 and scanner_kind == "clamscan":
