@@ -86,7 +86,9 @@ case "$(uname -s)" in
     platform_args+=(--enable-videotoolbox --enable-audiotoolbox)
     ;;
   MINGW*|MSYS*|CYGWIN*)
-    platform_args+=(--enable-mediafoundation)
+    # --disable-autodetect also disables D3D11VA; Media Foundation's D3D11
+    # path still needs the public D3D11 types enabled explicitly.
+    platform_args+=(--enable-mediafoundation --enable-d3d11va)
     ;;
   *)
     echo "unsupported release platform: $(uname -s)" >&2

@@ -98,6 +98,7 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertIn("--enable-libx264", script)
         self.assertIn("--enable-videotoolbox", script)
         self.assertIn("--enable-mediafoundation", script)
+        self.assertIn("--enable-d3d11va", script)
         self.assertIn("corresponding-source", script)
 
     def test_release_evidence_tools_are_fail_closed_and_documented(self) -> None:

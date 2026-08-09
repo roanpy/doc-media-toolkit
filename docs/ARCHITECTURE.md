@@ -221,7 +221,7 @@ IMAGE_LIBRARY/
   并按真实构建参数履行 LGPL/GPL 及对应源码义务。
 - 正式候选由 `scripts/build_ffmpeg_runtime.sh` 从 SHA-256 固定的 FFmpeg 8.1.2、
   x264 与 zlib 源码构建；zlib.net 不可用时仅切换到同一上游版本的 GitHub 源，仍必须通过同一 SHA-256。
-  只保留项目所需的 libx264、VideoToolbox/Media Foundation
+  只保留项目所需的 libx264、VideoToolbox/Media Foundation+D3D11VA
   和内置编解码/滤镜，并为每个平台生成对应源码、配置、工具链与哈希证据。
 - 打包脚本把项目、Python、Qt、资源与运行时 Python 直接/传递依赖的许可材料统一
   放入 `licenses/`；缺少必需许可文本时失败关闭。具体分发边界见 `LICENSING.md`。
