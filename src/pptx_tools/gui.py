@@ -63,6 +63,7 @@ from PySide6.QtWidgets import (
 from pptx_output_watermark.process_utils import terminate_active_processes
 from pptx_tools import __version__
 from pptx_tools.app_logging import configure_app_logging
+from pptx_tools.language import detect_language as detect_system_language
 from pptx_tools.ui_theme import (
     SHARED_DIALOG_QSS,
     configure_ui_font,
@@ -523,7 +524,7 @@ HELP_EXTRA_SECTIONS = {
               <li>正式包会在 <code>licenses/</code> 内携带项目、Python、Qt、资源和 Python 依赖许可；内置 FFmpeg/x264 适用 GPL，并在同一 Release 提供对应源码和构建证据。</li>
               <li>当前公开源码可直接使用；预构建候选在完成平台签名和公证前保持 Draft，不应绕过系统安全检查。</li>
               <li>主窗口、水印、压缩和帮助中心支持简体中文与英文；视频库和图片库业务界面当前仍以中文为主。</li>
-              <li>首次启动默认使用英文；可在启动前设置 <code>PPTX_TOOLS_LANG=zh</code> 切换中文。</li>
+              <li>支持双语的工作区首次启动跟随系统界面语言；可在启动前设置 <code>PPTX_TOOLS_LANG=zh</code> 或 <code>PPTX_TOOLS_LANG=en</code> 覆盖。</li>
               <li>API Key 只保留在本次运行的内存中。不开启图片输入时不会向 AI 发送预览图；不会发送完整文档、完整视频或本机路径。</li>
               <li>普通问题可提交 GitHub Issue；安全漏洞请使用仓库 Security 页的私密报告入口，不要公开披露。</li>
             </ul>
@@ -601,7 +602,7 @@ HELP_EXTRA_SECTIONS = {
               <li>Release packages carry project, Python, Qt, asset, and Python dependency notices under <code>licenses/</code>. Bundled FFmpeg/x264 is GPL-covered, with corresponding source and build evidence on the same Release.</li>
               <li>The public source is usable now. Binary candidates remain Draft until platform signing and notarization are complete; do not bypass operating-system security checks.</li>
               <li>The application shell, watermark, compression, and help center support Simplified Chinese and English. Video and image library operations are currently Chinese-first.</li>
-              <li>First launch defaults to English. Set <code>PPTX_TOOLS_LANG=zh</code> before launch to use Chinese.</li>
+              <li>Bilingual workspaces follow the system UI language on first launch. Set <code>PPTX_TOOLS_LANG=zh</code> or <code>PPTX_TOOLS_LANG=en</code> before launch to override it.</li>
               <li>API keys stay in process memory. AI previews are sent only when image input is enabled; complete documents, complete videos, and local paths are not sent.</li>
               <li>Use GitHub Issues for ordinary problems. Report vulnerabilities privately from the repository Security page.</li>
             </ul>
@@ -663,12 +664,7 @@ def help_topics(language: str) -> dict[str, str]:
 
 
 def detect_language() -> str:
-    override = os.environ.get("PPTX_TOOLS_LANG", "").strip().lower()
-    if override.startswith("zh"):
-        return "zh"
-    if override.startswith("en"):
-        return "en"
-    return "en"
+    return detect_system_language("PPTX_TOOLS_LANG")
 
 
 def resource_root() -> Path:

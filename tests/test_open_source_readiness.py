@@ -54,18 +54,27 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertIn("开源、语言与隐私", help_topics("zh"))
         self.assertIn("Open Source, Language, and Privacy", help_topics("en"))
 
-    def test_first_launch_defaults_to_english_and_keeps_chinese_override(self) -> None:
+    def test_language_uses_system_locale_and_keeps_explicit_overrides(self) -> None:
         detectors = (
             (detect_shell_language, "PPTX_TOOLS_LANG"),
             (detect_watermark_language, "PPTX_OUTPUT_WATERMARK_LANG"),
             (detect_compactor_language, "PPTX_VIDEO_COMPACTOR_LANG"),
         )
-        for detector, variable in detectors:
-            with self.subTest(detector=detector.__module__):
-                with patch.dict(os.environ, {}, clear=True):
-                    self.assertEqual(detector(), "en")
-                with patch.dict(os.environ, {variable: "zh-CN"}, clear=True):
-                    self.assertEqual(detector(), "zh")
+        with patch("pptx_tools.language.QLocale.system") as system_locale:
+            system_locale.return_value.name.return_value = "zh_CN"
+            for detector, variable in detectors:
+                with self.subTest(detector=detector.__module__, locale="zh"):
+                    with patch.dict(os.environ, {}, clear=True):
+                        self.assertEqual(detector(), "zh")
+            system_locale.return_value.name.return_value = "en_US"
+            for detector, variable in detectors:
+                with self.subTest(detector=detector.__module__, locale="en"):
+                    with patch.dict(os.environ, {}, clear=True):
+                        self.assertEqual(detector(), "en")
+                    with patch.dict(os.environ, {variable: "zh-CN"}, clear=True):
+                        self.assertEqual(detector(), "zh")
+                    with patch.dict(os.environ, {variable: "en-US"}, clear=True):
+                        self.assertEqual(detector(), "en")
 
     def test_public_readmes_show_current_version(self) -> None:
         self.assertEqual(__version__, "0.2.1")

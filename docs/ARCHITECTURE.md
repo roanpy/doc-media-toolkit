@@ -17,8 +17,8 @@ Doc Media Toolkit 是本地优先的 PySide6 桌面应用，同时提供统一 C
 判断，也不能自动归并或删除资产。
 
 对外产品名固定为 `Doc Media Toolkit` / `文档媒体工具箱`，公开仓库为
-`doc-media-toolkit`；Python 包和 CLI 保留 `pptx-tools` 作为兼容标识。主壳、水印、压缩和帮助中心通过系统语言
-或 `PPTX_TOOLS_LANG` 选择中英文；视频库和图片库业务界面当前仍以中文为主，
+`doc-media-toolkit`；Python 包和 CLI 保留 `pptx-tools` 作为兼容标识。主壳、水印、压缩和帮助中心通过系统界面语言
+或 `PPTX_TOOLS_LANG` 选择中英文（后者也接受 `en`）；视频库和图片库业务界面当前仍以中文为主，
 因此发布说明不得宣称完整双语。
 
 ## 2. 入口与依赖方向
@@ -52,7 +52,7 @@ pptx_tools_cli.py ──> pptx_tools.cli
 | 层 | 主要模块 | 职责 |
 | --- | --- | --- |
 | 壳与设置 | `pptx_tools.gui` | 四页签、帮助、AI 设置、激活同步、退出协调 |
-| 共享 UI | `ui_theme`, `media_manager_ui` | 字体、QSS、控件帮助、资产库后台 worker |
+| 共享 UI | `ui_theme`, `media_manager_ui`, `language` | 字体、QSS、控件帮助、系统语言选择、资产库后台 worker |
 | 水印 | `pptx_output_watermark/` | 文档转换、预览、PDF/PPTX/媒体水印 |
 | 压缩 | `pptx_video_compactor*`, `pptx_quality_audit` | 媒体计划、流式提取、编码、SSIM、PPTX 重写 |
 | 视频资产 | `video_manager`, `video_library_health` | 视频族/版本、PPTX 锚点、匹配、回填、体检 |

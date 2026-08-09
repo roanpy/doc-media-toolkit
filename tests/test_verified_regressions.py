@@ -1341,6 +1341,33 @@ class DesktopLifecycleTest(unittest.TestCase):
         )
         window.close()
 
+    def test_watermark_english_mode_localizes_preview_and_file_controls(self) -> None:
+        with patch("pptx_output_watermark.gui.detect_language", return_value="en"):
+            window = MainWindow()
+        self.assertEqual(
+            window.preview_thumbnail_list.item(0).text(),
+            "Select a file to show page thumbnails",
+        )
+        self.assertTrue(
+            any(
+                button.text() == "Collapse"
+                for button in window.log_drawer.findChildren(QPushButton)
+            )
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source = Path(temp_dir) / "sample.pptx"
+            source.touch()
+            window.set_files([source])
+            row = window.file_list.itemWidget(window.file_list.item(0))
+            toggle = row.findChild(QPushButton, "fileTypeToggle")
+            self.assertIn("Click to include or exclude", toggle.toolTip())
+        window.clear_preview(window.text["preview_waiting"])
+        self.assertEqual(
+            window.preview_thumbnail_list.item(0).text(),
+            "Select a file to show page thumbnails",
+        )
+        window.close()
+
     def test_compression_page_prioritizes_settings_over_queue_width(self) -> None:
         with patch("pptx_video_compactor_gui.detect_language", return_value="zh"):
             window = CompressionMainWindow()
