@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-09
+
 ### Added
 
 - **Source-pinned bundled FFmpeg 8.1.2**: Release candidates now build a minimal GPL runtime from SHA-256-pinned FFmpeg, x264, and zlib source, retain libx264 plus macOS VideoToolbox or Windows Media Foundation encoding, and emit the matching source archives, build script, configuration, toolchain record, licenses, and hashes beside each platform package.

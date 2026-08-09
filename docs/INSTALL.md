@@ -84,7 +84,7 @@ and are not part of the standard package.
 - Before upgrading the application, finish active jobs and copy each complete video
   or image library directory to a backup location. The manifest and its `.bak` file
   are not sufficient without the accompanying managed media.
-- Version 0.2.0 uses schema version 1 for both video and image libraries. A future
+- Version 0.2.x uses schema version 1 for both video and image libraries. A future
   incompatible schema must ship an explicit migration before the version is raised.
 - Keep the old application available until representative documents and each library
   pass a read-only health check in the new version.

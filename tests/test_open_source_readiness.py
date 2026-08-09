@@ -29,6 +29,7 @@ class OpenSourceReadinessTest(unittest.TestCase):
             "docs/DEPENDENCIES.md",
             "docs/INSTALL.md",
             "docs/INSTALL.zh-CN.md",
+            "docs/releases/v0.2.1.md",
             "docs/releases/v0.2.0.md",
             "docs/releases/v0.2.0-candidate-audit.md",
             "scripts/build_ffmpeg_runtime.sh",
@@ -44,6 +45,7 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertNotIn("LicenseRef-Proprietary", metadata)
         self.assertIn("github.com/roanpy/doc-media-toolkit", metadata)
         self.assertNotIn("github.com/roanpy/pptx-tools", metadata)
+        self.assertIn('{ file = "src/pptx_tools/__init__.py" }', metadata)
 
     def test_help_discloses_language_and_open_source_scope(self) -> None:
         self.assertIn("开源、语言与隐私", help_topics("zh"))
@@ -63,7 +65,7 @@ class OpenSourceReadinessTest(unittest.TestCase):
                     self.assertEqual(detector(), "zh")
 
     def test_public_readmes_show_current_version(self) -> None:
-        self.assertEqual(__version__, "0.2.0")
+        self.assertEqual(__version__, "0.2.1")
         for name in ("README.md", "README.zh-CN.md"):
             self.assertIn(__version__, (ROOT / name).read_text(encoding="utf-8"))
 
