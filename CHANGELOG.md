@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+
+- Parse user-supplied Office XML parts with `defusedxml` to reject unsafe entity
+  declarations before relationship and media analysis.
+- Public-binary evidence now validates SBOM/native-inventory/malware report
+  schemas, binds the SBOM and native inventory to the packaged artifact hash, and
+  checks the contents of the bundled FFmpeg corresponding-source archive; empty
+  or placeholder sidecars fail closed.
+
+### Added
+
+- Added local, dependency-free release helpers for deterministic native-file
+  inventories and fail-closed ClamAV/Windows Defender malware reports. They are
+  target-host evidence tools and do not run or publish GitHub Actions.
+
 ## [0.2.1] - 2026-08-09
 
 ### Added

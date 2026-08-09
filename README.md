@@ -5,7 +5,7 @@
 
   English · [简体中文](README.zh-CN.md)
 
-  [![Status: Stable](https://img.shields.io/badge/status-stable-brightgreen.svg)](#project-status)
+  [![Source status: Stable](https://img.shields.io/badge/source-stable-brightgreen.svg)](#project-status)
   [![Binary packages: gated](https://img.shields.io/badge/binaries-signing%20%26%20license%20gated-orange.svg)](docs/INSTALL.md)
   [![Version 0.2.1](https://img.shields.io/badge/version-0.2.1-2563eb.svg)](src/pptx_tools/__init__.py)
   [![Python 3.10–3.13](https://img.shields.io/badge/Python-3.10--3.13-3776AB.svg?logo=python&logoColor=white)](pyproject.toml)
@@ -119,9 +119,9 @@ See the [dependency rationale](docs/DEPENDENCIES.md), [licensing guide](docs/LIC
 
 ## Project status
 
-The current source identifies as **stable 0.2.1**. PPTX compression, watermarking, the video asset library, and the primary document-compatibility paths have been confirmed. Image asset management is an ancillary capability and has not yet received the same depth of validation as the core workflows. The application shell, watermark workspace, compression workspace, and help center support Simplified Chinese and English; the video and image library workspaces remain Chinese-first. First launch defaults to English. Set `PPTX_TOOLS_LANG=zh` before launch to use Chinese.
+The current source identifies as **stable 0.2.1**. PPTX compression, watermarking, the video asset library, and the primary document-compatibility paths have been confirmed. Image asset management is an ancillary capability and has not yet received the same depth of validation as the core workflows. The application shell, watermark workspace, compression workspace, and help center support Simplified Chinese and English; the video and image library workspaces remain Chinese-first. Supported workspaces follow the system UI language on first launch; set `PPTX_TOOLS_LANG=zh` or `PPTX_TOOLS_LANG=en` before launch to override it.
 
-The public repository is `doc-media-toolkit`; the Python distribution and CLI retain `pptx-tools` for compatibility. The 0.2.0 DMG/EXE candidates were returned to Draft after artifact review and must never be republished. Any replacement binary release uses 0.2.1 or later and remains blocked by Developer ID/notarization or Authenticode signing, GPL FFmpeg corresponding-source delivery, SBOM/native inventory, malware-scan evidence, and the Windows Qt redistribution path. See the [candidate audit](docs/releases/v0.2.0-candidate-audit.md).
+The public repository is `doc-media-toolkit`; the Python distribution and CLI retain `pptx-tools` for compatibility. The 0.2.0 DMG/EXE candidates were returned to Draft after artifact review and must never be republished. Any replacement binary release uses 0.2.1 or later and remains blocked by Developer ID/notarization or Authenticode signing, target-host malware-scan evidence, artifact-level SBOM/native inventory, and the Windows Qt redistribution path. The repository now includes the fail-closed evidence tools and pinned FFmpeg corresponding-source archive; those tools do not turn an unscanned local candidate into a public package. See the [candidate audit](docs/releases/v0.2.0-candidate-audit.md).
 
 Replacement candidates no longer reuse Homebrew/Gyan FFmpeg binaries: the release build pins FFmpeg 8.1.2, x264, and zlib 1.3.2 source by SHA-256, preserves libx264 plus macOS VideoToolbox/Windows Media Foundation encoding, and emits the matching corresponding-source archive with each platform package.
 

@@ -414,7 +414,8 @@ class OpenAICompatibleClient:
                 },
             )
             try:
-                with urllib.request.urlopen(
+                # The constructor rejects every scheme except HTTP(S) before this call.
+                with urllib.request.urlopen(  # nosec B310
                     request, timeout=self.config.timeout_seconds
                 ) as response:
                     return _read_response(response)

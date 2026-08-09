@@ -119,7 +119,7 @@ def _office_relationship_owner(rels_path: str) -> str | None:
 
 
 def _referenced_office_images(archive: ZipFile, media_prefix: str) -> list[str]:
-    import xml.etree.ElementTree as ET
+    from defusedxml import ElementTree as ET
 
     members = set(archive.namelist())
     referenced: set[str] = set()

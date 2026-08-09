@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import shutil
 import sys
 from dataclasses import dataclass, field
@@ -81,6 +80,7 @@ from .pptx_video_support import extract_video_poster_frame
 from .runtime_temp import cleanup_stale_runtime_entries, create_runtime_temp_dir
 from .watermarking import apply_watermark_to_image
 from pptx_tools.app_logging import configure_app_logging
+from pptx_tools.language import detect_language as detect_system_language
 from pptx_tools.ui_theme import (
     SHARED_DIALOG_QSS,
     SHARED_MAIN_QSS,
@@ -300,6 +300,7 @@ STRINGS = {
         "preview_title": "效果预览",
         "preview_note": "仅渲染前几页看效果，不展示视频交互。",
         "preview_waiting": "选择左侧文件后自动生成预览。",
+        "preview_thumbnails_empty": "选择文件后显示页面缩略图",
         "preview_manual": "文件较大，点击刷新预览后生成。",
         "preview_loading": "正在生成预览…",
         "preview_failed": "预览生成失败",
@@ -400,6 +401,10 @@ STRINGS = {
         "selection_fixed_media": "已选择 {count} 个文件。当前图片/视频按原格式或 MP4 输出，文档 / PPTX 仍按全局格式导出。",
         "output_format_fixed": "{format}（固定）",
         "mixed_queue_pptx_body": "当前选择导出 PPTX，但队列中包含 DOCX 或 PDF。它们无法转成幻灯片，只会按你当前选择的形式导出为 PDF。",
+        "close_button": "收起",
+        "image_keep_videos_unavailable": "仅在输出格式为 PPTX、形式为图片化时可用。",
+        "file_toggle_accessible": "{source} 文件处理开关",
+        "file_toggle_tooltip": "{source} 文件。点击切换是否纳入本次处理。",
     },
     "en": {
         "window_title": "Document & Media Watermark Export",
@@ -462,6 +467,7 @@ STRINGS = {
         "preview_title": "Preview",
         "preview_note": "Only the first few pages are rendered for visual review; video playback is not shown.",
         "preview_waiting": "Select a file on the left to generate a preview.",
+        "preview_thumbnails_empty": "Select a file to show page thumbnails",
         "preview_manual": "Large file. Click Refresh to generate the preview.",
         "preview_loading": "Generating preview…",
         "preview_failed": "Preview failed",
@@ -562,17 +568,16 @@ STRINGS = {
         "selection_fixed_media": "{count} file(s) selected. The current image/video exports in source format or MP4, while documents/PPTX still follow the global target format.",
         "output_format_fixed": "{format} (fixed)",
         "mixed_queue_pptx_body": "PPTX output is selected, but the queue also contains DOCX or PDF files. They cannot become slides and will export as PDF using the current mode.",
+        "close_button": "Collapse",
+        "image_keep_videos_unavailable": "Available only for image-based PPTX output.",
+        "file_toggle_accessible": "{source} file processing toggle",
+        "file_toggle_tooltip": "{source} file. Click to include or exclude it from this export.",
     },
 }
 
 
 def detect_language() -> str:
-    override = os.environ.get("PPTX_OUTPUT_WATERMARK_LANG", "").strip().lower()
-    if override.startswith("zh"):
-        return "zh"
-    if override.startswith("en"):
-        return "en"
-    return "en"
+    return detect_system_language("PPTX_OUTPUT_WATERMARK_LANG")
 
 
 def format_file_size(size_bytes: int) -> str:
@@ -2458,7 +2463,7 @@ class MainWindow(QMainWindow):
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
         self.preview_thumbnail_list.currentRowChanged.connect(self.select_preview_page)
-        placeholder = QListWidgetItem("选择文件后显示页面缩略图")
+        placeholder = QListWidgetItem(self.text["preview_thumbnails_empty"])
         placeholder.setFlags(Qt.ItemFlag.NoItemFlags)
         self.preview_thumbnail_list.addItem(placeholder)
         preview_layout.addWidget(self.preview_thumbnail_list)
@@ -2534,7 +2539,7 @@ class MainWindow(QMainWindow):
         log_drawer_title.setObjectName("sectionTitle")
         log_drawer_header.addWidget(log_drawer_title)
         log_drawer_header.addStretch(1)
-        close_log_drawer = QPushButton("收起")
+        close_log_drawer = QPushButton(self.text["close_button"])
         close_log_drawer.setObjectName("disclosureButton")
         close_log_drawer.setFixedHeight(28)
         close_log_drawer.clicked.connect(self.hide_log_drawer)
@@ -4035,7 +4040,7 @@ class MainWindow(QMainWindow):
                 f"{self.text['image_keep_videos_hint']}\n"
                 f"{self.text['image_keep_videos_warning']}"
                 if can_reinsert_videos
-                else "仅在输出格式为 PPTX、形式为图片化时可用。"
+                else self.text["image_keep_videos_unavailable"]
             )
         )
         self.keep_videos_checkbox.setProperty(
@@ -4344,7 +4349,7 @@ class MainWindow(QMainWindow):
     def clear_preview(self, message: str) -> None:
         self.cleanup_current_preview()
         self.preview_thumbnail_list.clear()
-        placeholder = QListWidgetItem("选择文件后显示页面缩略图")
+        placeholder = QListWidgetItem(self.text["preview_thumbnails_empty"])
         placeholder.setFlags(Qt.ItemFlag.NoItemFlags)
         self.preview_thumbnail_list.addItem(placeholder)
         self.preview_page_label.setText(message)
@@ -4713,8 +4718,12 @@ class MainWindow(QMainWindow):
             type_toggle.setFixedSize(34, 34)
             type_toggle.setIcon(icon_provider.icon(QFileInfo(str(path))))
             type_toggle.setIconSize(QSize(24, 24))
-            type_toggle.setAccessibleName(f"{source_tag} 文件处理开关")
-            type_toggle.setToolTip(f"{source_tag} 文件。点击切换是否纳入本次处理。")
+            type_toggle.setAccessibleName(
+                self.text["file_toggle_accessible"].format(source=source_tag)
+            )
+            type_toggle.setToolTip(
+                self.text["file_toggle_tooltip"].format(source=source_tag)
+            )
             type_toggle.toggled.connect(
                 lambda checked, checked_path=path, checked_row=row: (
                     self.set_path_checked(checked_path, checked, checked_row)

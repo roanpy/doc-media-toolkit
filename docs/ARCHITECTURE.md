@@ -17,8 +17,8 @@ Doc Media Toolkit 是本地优先的 PySide6 桌面应用，同时提供统一 C
 判断，也不能自动归并或删除资产。
 
 对外产品名固定为 `Doc Media Toolkit` / `文档媒体工具箱`，公开仓库为
-`doc-media-toolkit`；Python 包和 CLI 保留 `pptx-tools` 作为兼容标识。主壳、水印、压缩和帮助中心通过系统语言
-或 `PPTX_TOOLS_LANG` 选择中英文；视频库和图片库业务界面当前仍以中文为主，
+`doc-media-toolkit`；Python 包和 CLI 保留 `pptx-tools` 作为兼容标识。主壳、水印、压缩和帮助中心通过系统界面语言
+或 `PPTX_TOOLS_LANG` 选择中英文（后者也接受 `en`）；视频库和图片库业务界面当前仍以中文为主，
 因此发布说明不得宣称完整双语。
 
 ## 2. 入口与依赖方向
@@ -52,7 +52,7 @@ pptx_tools_cli.py ──> pptx_tools.cli
 | 层 | 主要模块 | 职责 |
 | --- | --- | --- |
 | 壳与设置 | `pptx_tools.gui` | 四页签、帮助、AI 设置、激活同步、退出协调 |
-| 共享 UI | `ui_theme`, `media_manager_ui` | 字体、QSS、控件帮助、资产库后台 worker |
+| 共享 UI | `ui_theme`, `media_manager_ui`, `language` | 字体、QSS、控件帮助、系统语言选择、资产库后台 worker |
 | 水印 | `pptx_output_watermark/` | 文档转换、预览、PDF/PPTX/媒体水印 |
 | 压缩 | `pptx_video_compactor*`, `pptx_quality_audit` | 媒体计划、流式提取、编码、SSIM、PPTX 重写 |
 | 视频资产 | `video_manager`, `video_library_health` | 视频族/版本、PPTX 锚点、匹配、回填、体检 |
@@ -220,7 +220,8 @@ IMAGE_LIBRARY/
 - FFmpeg/ffprobe 用于视频编码、探测、指纹和质量审计；发布包必须内置匹配许可，
   并按真实构建参数履行 LGPL/GPL 及对应源码义务。
 - 正式候选由 `scripts/build_ffmpeg_runtime.sh` 从 SHA-256 固定的 FFmpeg 8.1.2、
-  x264 与 zlib 源码构建，只保留项目所需的 libx264、VideoToolbox/Media Foundation
+  x264 与 zlib 源码构建；zlib.net 不可用时仅切换到同一上游版本的 GitHub 源，仍必须通过同一 SHA-256。
+  只保留项目所需的 libx264、VideoToolbox/Media Foundation+D3D11VA
   和内置编解码/滤镜，并为每个平台生成对应源码、配置、工具链与哈希证据。
 - 打包脚本把项目、Python、Qt、资源与运行时 Python 直接/传递依赖的许可材料统一
   放入 `licenses/`；缺少必需许可文本时失败关闭。具体分发边界见 `LICENSING.md`。
@@ -241,8 +242,12 @@ IMAGE_LIBRARY/
 
 `scripts/release_audit.py` 是不依赖远程 CI 的本地发布前审计入口，覆盖 Git 分支/提交
 溯源与干净工作树、`uv lock --check`、可选 `pip-audit`（外部工具）、可选 uv
-CycloneDX SBOM 与 `dist/` 产物版本/哈希。`scripts/run_compression_benchmark.py` 以
-manifest 驱动复现智能目标
+CycloneDX SBOM 与 `dist/` 产物版本/哈希。`scripts/generate_native_inventory.py` 对
+目标平台解包后的 onedir/`.app` 记录相对原生文件路径、SHA-256、架构和依赖工具输出；
+`scripts/scan_release_artifact.py` 调用 ClamAV 或 Windows Defender 生成绑定产物哈希的
+恶意软件报告；SBOM 和原生清单的证据描述同样必须绑定最终安装包 SHA-256，无扫描器时
+失败关闭。三者都只生成证据，不发布、不修改核心算法。
+`scripts/run_compression_benchmark.py` 以 manifest 驱动复现智能目标
 容量压缩结果；两个入口都不修改核心算法。基准语料（样本与 manifest）不进 Git，
 仅以绝对路径引用，契约见 `COMPRESSION_BENCHMARK.md`。跨平台基准必须在对应平台
 运行，因为 GPU 探测、FFmpeg 路径和编码器可用性都是平台相关的。

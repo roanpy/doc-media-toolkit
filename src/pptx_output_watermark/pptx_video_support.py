@@ -15,7 +15,7 @@ from functools import lru_cache
 from pathlib import Path
 from tempfile import mkdtemp, mkstemp
 from zipfile import ZipFile
-from xml.etree import ElementTree as ET
+from defusedxml import ElementTree as ET
 
 from PIL import Image
 from pptx.oxml.ns import qn

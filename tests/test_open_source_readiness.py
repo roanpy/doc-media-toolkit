@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -16,6 +17,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class OpenSourceReadinessTest(unittest.TestCase):
+    def test_macos_preferred_language_parser(self) -> None:
+        completed = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout='(\n    "zh-Hans-US",\n    "en-US"\n)\n',
+            stderr="",
+        )
+        with (
+            patch("pptx_tools.language.sys.platform", "darwin"),
+            patch("pptx_tools.language.subprocess.run", return_value=completed),
+        ):
+            from pptx_tools.language import _macos_preferred_language
+
+            self.assertEqual(_macos_preferred_language(), "zh-Hans-US")
+
     def test_public_entry_points_and_policy_files_are_present(self) -> None:
         required = (
             "LICENSE",
@@ -33,6 +49,9 @@ class OpenSourceReadinessTest(unittest.TestCase):
             "docs/releases/v0.2.0.md",
             "docs/releases/v0.2.0-candidate-audit.md",
             "scripts/build_ffmpeg_runtime.sh",
+            "scripts/generate_native_inventory.py",
+            "scripts/scan_release_artifact.py",
+            "scripts/release_audit.py",
             "licenses/GPL-3.0-only.txt",
             "licenses/LGPL-3.0-only.txt",
             ".github/pull_request_template.md",
@@ -51,18 +70,63 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertIn("开源、语言与隐私", help_topics("zh"))
         self.assertIn("Open Source, Language, and Privacy", help_topics("en"))
 
-    def test_first_launch_defaults_to_english_and_keeps_chinese_override(self) -> None:
+    def test_language_uses_system_locale_and_keeps_explicit_overrides(self) -> None:
         detectors = (
             (detect_shell_language, "PPTX_TOOLS_LANG"),
             (detect_watermark_language, "PPTX_OUTPUT_WATERMARK_LANG"),
             (detect_compactor_language, "PPTX_VIDEO_COMPACTOR_LANG"),
         )
-        for detector, variable in detectors:
-            with self.subTest(detector=detector.__module__):
-                with patch.dict(os.environ, {}, clear=True):
-                    self.assertEqual(detector(), "en")
-                with patch.dict(os.environ, {variable: "zh-CN"}, clear=True):
-                    self.assertEqual(detector(), "zh")
+        with (
+            patch("pptx_tools.language._macos_preferred_language", return_value=""),
+            patch("pptx_tools.language.QLocale.system") as system_locale,
+        ):
+            system_locale.return_value.name.return_value = "zh_CN"
+            for detector, variable in detectors:
+                with self.subTest(detector=detector.__module__, locale="zh"):
+                    with patch.dict(os.environ, {}, clear=True):
+                        self.assertEqual(detector(), "zh")
+            system_locale.return_value.name.return_value = "en_US"
+            for detector, variable in detectors:
+                with self.subTest(detector=detector.__module__, locale="en"):
+                    with patch.dict(os.environ, {}, clear=True):
+                        self.assertEqual(detector(), "en")
+                    with patch.dict(os.environ, {variable: "zh-CN"}, clear=True):
+                        self.assertEqual(detector(), "zh")
+                    with patch.dict(os.environ, {variable: "en-US"}, clear=True):
+                        self.assertEqual(detector(), "en")
+
+    def test_macos_native_language_wins_over_posix_qt_locale(self) -> None:
+        detectors = (
+            (detect_shell_language, "PPTX_TOOLS_LANG"),
+            (detect_watermark_language, "PPTX_OUTPUT_WATERMARK_LANG"),
+            (detect_compactor_language, "PPTX_VIDEO_COMPACTOR_LANG"),
+        )
+        with (
+            patch(
+                "pptx_tools.language._macos_preferred_language",
+                return_value="zh-Hans-US",
+            ),
+            patch("pptx_tools.language.QLocale.system") as system_locale,
+        ):
+            system_locale.return_value.name.return_value = "C"
+            for detector, variable in detectors:
+                with self.subTest(detector=detector.__module__):
+                    with patch.dict(
+                        os.environ,
+                        {"LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"},
+                        clear=True,
+                    ):
+                        self.assertEqual(detector(), "zh")
+                    with patch.dict(
+                        os.environ,
+                        {
+                            "LANG": "C.UTF-8",
+                            "LC_ALL": "C.UTF-8",
+                            variable: "en-US",
+                        },
+                        clear=True,
+                    ):
+                        self.assertEqual(detector(), "en")
 
     def test_public_readmes_show_current_version(self) -> None:
         self.assertEqual(__version__, "0.2.1")
@@ -79,6 +143,7 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertNotIn("release_tag", workflow)
         self.assertNotIn("gh release", workflow)
         self.assertNotIn("--windows-onefile", workflow)
+        self.assertIn("- macos", workflow)
         self.assertIn("scripts/build_ffmpeg_runtime.sh", workflow)
         self.assertNotIn("GyanD/codexffmpeg", workflow)
 
@@ -90,10 +155,27 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertIn('FFMPEG_SHA256="464beb5e', script)
         self.assertIn('X264_COMMIT="b35605ace3dd', script)
         self.assertIn('ZLIB_VERSION="1.3.2"', script)
+        self.assertIn("download_verified_any", script)
+        self.assertIn("github.com/madler/zlib/releases/download", script)
         self.assertIn("--enable-libx264", script)
         self.assertIn("--enable-videotoolbox", script)
         self.assertIn("--enable-mediafoundation", script)
+        self.assertIn("--enable-d3d11va", script)
         self.assertIn("corresponding-source", script)
+
+    def test_release_evidence_tools_are_fail_closed_and_documented(self) -> None:
+        inventory = (ROOT / "scripts/generate_native_inventory.py").read_text(
+            encoding="utf-8"
+        )
+        malware = (ROOT / "scripts/scan_release_artifact.py").read_text(
+            encoding="utf-8"
+        )
+        release = (ROOT / "docs/RELEASE.md").read_text(encoding="utf-8")
+        self.assertIn('"doc-media-toolkit.native-inventory.v1"', inventory)
+        self.assertIn('"doc-media-toolkit.malware-scan.v1"', malware)
+        self.assertIn("No supported malware scanner found", malware)
+        self.assertIn("generate_native_inventory.py", release)
+        self.assertIn("scan_release_artifact.py", release)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 from zipfile import ZIP_STORED, ZipFile
 
+from defusedxml.common import EntitiesForbidden
 from PIL import Image
 
 from docx_image_compactor import compact_docx
@@ -17,7 +18,13 @@ RELATIONSHIPS = "http://schemas.openxmlformats.org/package/2006/relationships"
 OFFICE_RELS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 
 
-def make_docx(path: Path, *, signed: bool = False, macro: bool = False) -> None:
+def make_docx(
+    path: Path,
+    *,
+    signed: bool = False,
+    macro: bool = False,
+    unsafe_relationships: bool = False,
+) -> None:
     image_bytes = io.BytesIO()
     Image.new("RGB", (900, 900), (40, 100, 180)).save(
         image_bytes, format="PNG", compress_level=0
@@ -51,12 +58,17 @@ def make_docx(path: Path, *, signed: bool = False, macro: bool = False) -> None:
             f'xmlns:r="{OFFICE_RELS}"><w:body><w:p><w:r><w:drawing/>'
             "</w:r></w:p><w:sectPr/></w:body></w:document>",
         )
-        archive.writestr(
-            "word/_rels/document.xml.rels",
+        relationships = (
+            '<!DOCTYPE Relationships [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>'
             f'<Relationships xmlns="{RELATIONSHIPS}">'
             f'<Relationship Id="image" Type="{OFFICE_RELS}/image" '
-            'Target="media/image1.png"/></Relationships>',
+            'Target="&xxe;"/></Relationships>'
+            if unsafe_relationships
+            else f'<Relationships xmlns="{RELATIONSHIPS}">'
+            f'<Relationship Id="image" Type="{OFFICE_RELS}/image" '
+            'Target="media/image1.png"/></Relationships>'
         )
+        archive.writestr("word/_rels/document.xml.rels", relationships)
         archive.writestr("word/media/image1.png", image_bytes.getvalue())
         archive.writestr("word/settings.xml", b"settings-must-not-change")
         if signed:
@@ -101,6 +113,13 @@ class DocxImageCompactorTest(unittest.TestCase):
             source = Path(temp_dir) / "signed.docx"
             make_docx(source, signed=True)
             with self.assertRaisesRegex(RuntimeError, "Digitally signed"):
+                compact_docx(source, 0.3, logger=lambda _: None)
+
+    def test_rejects_unsafe_xml_entities(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source = Path(temp_dir) / "unsafe.docx"
+            make_docx(source, unsafe_relationships=True)
+            with self.assertRaises(EntitiesForbidden):
                 compact_docx(source, 0.3, logger=lambda _: None)
 
     def test_refuses_invalid_packages_and_source_overwrite(self) -> None:

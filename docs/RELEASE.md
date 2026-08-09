@@ -110,7 +110,7 @@ Notes:
 - macOS fallback checks Automation permission separately from install state. If Keynote or Pages is installed but not authorized, the GUI should offer a System Settings action instead of a download link.
 - `PDF` input bypasses external PDF export engines and goes straight into editable-PDF watermarking or image-PDF rebuilding.
 - `pypdfium2` replaces external `pdftoppm`.
-- Public candidates must use `scripts/build_ffmpeg_runtime.sh`, not a Homebrew or Gyan prebuilt binary. The script pins FFmpeg 8.1.2, x264, and zlib 1.3.2 sources by SHA-256, enables libx264 plus VideoToolbox on macOS or Media Foundation on Windows, records the exact configuration, and emits the matching corresponding-source archive. Public Windows distribution uses an onedir portable ZIP so Qt libraries remain replaceable and inspectable.
+- Public candidates must use `scripts/build_ffmpeg_runtime.sh`, not a Homebrew or Gyan prebuilt binary. The script pins FFmpeg 8.1.2, x264, and zlib 1.3.2 sources by SHA-256, enables libx264 plus VideoToolbox on macOS or Media Foundation with D3D11VA on Windows, records the exact configuration, and emits the matching corresponding-source archive. zlib is fetched from zlib.net first and uses the upstream `madler/zlib` release only as a network fallback; both paths must match the same pinned SHA-256. Public Windows distribution uses an onedir portable ZIP so Qt libraries remain replaceable and inspectable.
 - Public one-file distribution remains blocked until the Qt LGPL replacement/relinking path and the exact native-library inventory are verified. Prefer onedir for the first public binary release.
 - macOS local packages are not notarized unless Developer ID signing and notarization are configured separately.
 - macOS builds copy `pptx_tools.__version__` into `CFBundleShortVersionString` and `CFBundleVersion`, use `com.roanpy.doc-media-toolkit` as the bundle identifier, then re-sign and strictly verify the app before DMG creation.
@@ -128,7 +128,7 @@ Notes:
 - Video library preferences use platform-native Qt settings. Rotating application logs remain under the platform application-data directory.
 - Libraries keep a last-valid `video-project.json.bak`, reject stale concurrent saves, and relink renamed or moved video files by SHA-256.
 - Video and image cleanup use a recoverable intent log before moving files. New quarantine paths are project-relative, restore verifies SHA-256, and any path outside the managed media/cleanup roots fails closed.
-- Candidate jobs build FFmpeg 8.1.2, x264, and zlib 1.3.2 from pinned, hashed source; smoke-launch the GUI; verify bundled tools and macOS DMG/signature structure; and emit the corresponding-source archive, per-platform checksums, SBOMs, native-file inventories, dependency audits, and FFmpeg build information. They never publish a GitHub Release.
+- Candidate jobs build FFmpeg 8.1.2, x264, and zlib 1.3.2 from pinned, hashed source; smoke-launch the GUI; verify bundled tools and macOS DMG/signature structure; and emit the corresponding-source archive, per-platform checksums, SBOMs, dependency audits, and FFmpeg build information. Native inventories and malware results are produced on the target host with the local commands below; a candidate build is never a clean-scan claim and never publishes a GitHub Release.
 - Windows release builds download Poppler `26.02.0-0` from the pinned `oschwartz10612/poppler-windows` release and verify SHA-256 (`993e4a94376ed712fafc7058d724ea0b943d118bbd2305cd9ed55174eb85cda5`) before PDF tests. Poppler remains a build/test runtime and is not bundled into the standard app.
 - Watermark, compression, video-library, and image-library UI logs share the same rotating application log.
 - Both `ci.yml` and `release.yml` are manual-only. Pushing commits or tags does not consume Actions minutes; a maintainer must explicitly dispatch a workflow. Both workflows enforce `ruff check src tests scripts` and `ruff format --check src tests scripts` before tests/builds; Markdown examples are reviewed separately and are not treated as Python source.
@@ -169,6 +169,50 @@ It writes a Markdown checklist (`release-audit.md`) and a JSON sidecar. A dirty
 working tree fails the audit so the package can be traced to a reproducible commit.
 It does not build, sign, notarize, or publish.
 
+### Native inventory and malware evidence
+
+These commands run locally on the same target host that produced the package. They
+write only relative artifact paths and hashes, so the reports can be attached to a
+public release without exposing the build machine's directory layout:
+
+```bash
+# macOS .app or an unpacked Windows onedir directory
+python scripts/generate_native_inventory.py \
+  "dist/Doc Media Toolkit.app" \
+  --platform macos --architecture arm64 \
+  --artifact "release-assets/Doc-Media-Toolkit-macOS-arm64.dmg" \
+  --output release-assets/native-inventory-macos-arm64.json
+
+# DMG, ZIP, EXE, or unpacked application directory
+python scripts/scan_release_artifact.py \
+  "release-assets/Doc-Media-Toolkit-macOS-arm64.dmg" \
+  --output release-assets/malware-macos-arm64.json
+```
+
+On Windows, run the same helpers from PowerShell against the onedir directory and
+portable ZIP/installer:
+
+```powershell
+python scripts\generate_native_inventory.py "dist\Doc Media Toolkit" `
+  --platform windows --architecture x86_64 `
+  --artifact "release-assets\Doc-Media-Toolkit-windows-x64-portable.zip" `
+  --output release-assets\native-inventory-windows-x64.json
+python scripts\scan_release_artifact.py `
+  "release-assets\Doc-Media-Toolkit-windows-x64-portable.zip" `
+  --output release-assets\malware-windows-x64.json
+```
+
+The malware helper uses an explicitly selected scanner, ClamAV, or Windows
+Defender (`MpCmdRun.exe`). If none is installed it returns `unavailable` and a
+non-zero exit code; it never infers cleanliness from codesigning, Gatekeeper, or
+the absence of a scanner. A real public package therefore needs a clean report
+from a scanner on macOS and on Windows, plus the matching native inventory.
+
+The corresponding-source archive is emitted by
+`scripts/build_ffmpeg_runtime.sh`. The public-binary audit opens that archive and
+checks for the pinned FFmpeg/x264/zlib sources, build script, patch, checksum, and
+build record; a filename or an empty placeholder is not accepted.
+
 ### Manifest-driven compression benchmark
 
 ```bash
@@ -191,7 +235,8 @@ write absolute input paths. Contract:
 the artifact `path`, `sha256`, `platform`, `architecture`, and `package_type`, plus
 a trusted signature type (`developer-id` or `authenticode`) and verified sidecar
 files for `signature`, `notarization` on macOS, `malware_scan`,
-`sbom`, and `native_inventory`. A bundled FFmpeg entry also records `version`, full
+`sbom`, and `native_inventory`; the SBOM and native-inventory descriptors also carry
+the exact packaged artifact SHA-256. A bundled FFmpeg entry also records `version`, full
 `configuration`, `license`, and a hashed `corresponding_source` archive. Paths are
 resolved inside `--dist-dir`; path escape, missing files, or hash mismatches fail.
 

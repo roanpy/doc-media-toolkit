@@ -8,6 +8,7 @@ The default installation represents the complete desktop product. It intentional
 
 | Dependency | Required for | Decision |
 | --- | --- | --- |
+| defusedxml | Safe parsing of user-supplied Office XML parts | Required at the document/PPTX parsing trust boundary / 文档与 PPTX 解析边界必需 |
 | Pillow | image decode/encode, previews, fingerprints, watermarks, all image compression paths | Required by most workspaces / 多数工作区必需 |
 | PySide6 | desktop GUI, media playback, dialogs, settings | Required for the desktop app; not conceptually required by CLI-only use / 桌面应用必需，纯 CLI 理论上可不装 |
 | python-pptx | PPTX structure and media operations | Required / 必需 |
@@ -17,9 +18,9 @@ The default installation represents the complete desktop product. It intentional
 | pikepdf | PDF embedded-image compression | Used only by the PDF compression branch, but included so the advertised PDF input works without a second install / 只服务 PDF 压缩，但为保证公开功能开箱可用而默认安装 |
 | comtypes | Microsoft Office/WPS COM automation | Windows-only through an environment marker; never installed on macOS/Linux / 仅 Windows 条件安装 |
 
-`lxml`, `packaging`, `charset-normalizer`, `typing-extensions`, `XlsxWriter`, the split PySide6 packages, Shiboken6, and PDFium component libraries are transitive dependencies selected by the direct packages. They must not be manually removed or pinned independently without testing the parent package.
+`lxml`, `packaging`, `charset-normalizer`, `typing-extensions`, `XlsxWriter`, the split PySide6 packages, Shiboken6, and PDFium component libraries are transitive dependencies selected by the direct packages. They must not be manually removed or pinned independently without testing the parent package. `defusedxml` is intentionally direct because it protects the user-file XML parsing boundary.
 
-`lxml`、`packaging`、`charset-normalizer`、`typing-extensions`、`XlsxWriter`、拆分的 PySide6 包、Shiboken6 及 PDFium 内部组件均由直接依赖带入，不应脱离上游父包单独删除或随意锁版本。
+`lxml`、`packaging`、`charset-normalizer`、`typing-extensions`、`XlsxWriter`、拆分的 PySide6 包、Shiboken6 及 PDFium 内部组件均由直接依赖带入，不应脱离上游父包单独删除或随意锁版本。`defusedxml` 因位于用户文件 XML 解析信任边界而作为直接依赖保留。
 
 ## Non-runtime dependencies / 非运行时依赖
 

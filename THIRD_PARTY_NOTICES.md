@@ -9,6 +9,7 @@ Doc Media Toolkit source code is licensed under MIT. That license applies only t
 | Component | Relationship | License |
 | --- | --- | --- |
 | Python runtime | packaged interpreter/stdlib | PSF License |
+| defusedxml | direct; safe Office XML parsing | Python Software Foundation License |
 | Pillow | direct | MIT-CMU |
 | pikepdf | direct | MPL-2.0 |
 | PySide6, PySide6-Addons, PySide6-Essentials, Shiboken6 | direct/transitive Qt for Python runtime | LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only |

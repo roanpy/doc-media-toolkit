@@ -30,6 +30,7 @@ classifiers = [
   "Topic :: Office/Business :: Office Suites",
 ]
 dependencies = [
+  "defusedxml>=0.7.1",
   "Pillow>=10.0",
   "pikepdf>=10.0",
   "PySide6>=6.9",

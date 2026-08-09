@@ -435,7 +435,10 @@ class AutomaticAuditWorkflowTest(unittest.TestCase):
             settings.remove(key)
         window = None
         try:
-            window = CompressionMainWindow()
+            with patch.dict(
+                os.environ, {"PPTX_VIDEO_COMPACTOR_LANG": "en"}, clear=False
+            ):
+                window = CompressionMainWindow()
             self.assertEqual(window.archive_mode_select.currentData(), "off")
             self.assertEqual(window.image_archive_mode_select.currentData(), "off")
             self.assertIn("optional", window.archive_mode_label.text().lower())
@@ -923,7 +926,8 @@ class DesktopLifecycleTest(unittest.TestCase):
         window.close()
 
     def test_shared_shell_uses_canonical_header_and_text_tabs(self) -> None:
-        window = ToolboxMainWindow()
+        with patch.dict(os.environ, {"PPTX_TOOLS_LANG": "en"}, clear=False):
+            window = ToolboxMainWindow()
         self.assertEqual(window.minimumWidth(), 880)
         self.assertEqual(window.header_card.height(), 58)
         self.assertTrue(window.header_eyebrow.isHidden())
@@ -1338,6 +1342,33 @@ class DesktopLifecycleTest(unittest.TestCase):
         self.assertGreater(
             window.preview_image_label.width(),
             compact_preview_width,
+        )
+        window.close()
+
+    def test_watermark_english_mode_localizes_preview_and_file_controls(self) -> None:
+        with patch("pptx_output_watermark.gui.detect_language", return_value="en"):
+            window = MainWindow()
+        self.assertEqual(
+            window.preview_thumbnail_list.item(0).text(),
+            "Select a file to show page thumbnails",
+        )
+        self.assertTrue(
+            any(
+                button.text() == "Collapse"
+                for button in window.log_drawer.findChildren(QPushButton)
+            )
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source = Path(temp_dir) / "sample.pptx"
+            source.touch()
+            window.set_files([source])
+            row = window.file_list.itemWidget(window.file_list.item(0))
+            toggle = row.findChild(QPushButton, "fileTypeToggle")
+            self.assertIn("Click to include or exclude", toggle.toolTip())
+        window.clear_preview(window.text["preview_waiting"])
+        self.assertEqual(
+            window.preview_thumbnail_list.item(0).text(),
+            "Select a file to show page thumbnails",
         )
         window.close()
 
