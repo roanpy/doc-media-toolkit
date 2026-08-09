@@ -241,8 +241,12 @@ IMAGE_LIBRARY/
 
 `scripts/release_audit.py` 是不依赖远程 CI 的本地发布前审计入口，覆盖 Git 分支/提交
 溯源与干净工作树、`uv lock --check`、可选 `pip-audit`（外部工具）、可选 uv
-CycloneDX SBOM 与 `dist/` 产物版本/哈希。`scripts/run_compression_benchmark.py` 以
-manifest 驱动复现智能目标
+CycloneDX SBOM 与 `dist/` 产物版本/哈希。`scripts/generate_native_inventory.py` 对
+目标平台解包后的 onedir/`.app` 记录相对原生文件路径、SHA-256、架构和依赖工具输出；
+`scripts/scan_release_artifact.py` 调用 ClamAV 或 Windows Defender 生成绑定产物哈希的
+恶意软件报告；SBOM 和原生清单的证据描述同样必须绑定最终安装包 SHA-256，无扫描器时
+失败关闭。三者都只生成证据，不发布、不修改核心算法。
+`scripts/run_compression_benchmark.py` 以 manifest 驱动复现智能目标
 容量压缩结果；两个入口都不修改核心算法。基准语料（样本与 manifest）不进 Git，
 仅以绝对路径引用，契约见 `COMPRESSION_BENCHMARK.md`。跨平台基准必须在对应平台
 运行，因为 GPU 探测、FFmpeg 路径和编码器可用性都是平台相关的。

@@ -11,6 +11,8 @@ This file separates repository preparation from owner-only publication actions.
 - Contribution, security, conduct, issue, and pull-request guidance.
 - Third-party dependency and bundled-runtime notices.
 - Current-tree public-safety scan and local release checks.
+- Reusable fail-closed helpers for native-file inventory and ClamAV/Windows
+  Defender malware evidence; they never assert a clean result without a scanner.
 - GitHub workflows remain manual-only; ordinary commits do not consume Actions minutes.
 - The candidate-build workflow is read-only and cannot publish or update a GitHub Release.
 - Clean public source repository: <https://github.com/roanpy/doc-media-toolkit>.
@@ -21,6 +23,7 @@ This file separates repository preparation from owner-only publication actions.
 - 贡献、安全、行为准则、Issue 和 Pull Request 规范。
 - 第三方依赖及打包运行时许可说明。
 - 当前工作树公开安全扫描和本地发布检查。
+- 可复用的原生文件清单与 ClamAV/Windows Defender 恶意软件证据工具；无扫描器时不会宣称干净。
 - GitHub workflow 保持手动触发，普通提交不会消耗 Actions 时长。
 - 候选构建 workflow 为只读，不能发布或更新 GitHub Release。
 - 干净的公开源码仓库：<https://github.com/roanpy/doc-media-toolkit>。

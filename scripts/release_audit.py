@@ -39,8 +39,9 @@ import re
 import shutil
 import subprocess
 import sys
+import tarfile
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from subprocess import TimeoutExpired as SubprocessTimeoutExpired
 from typing import Any
 
@@ -298,6 +299,182 @@ def _evidence_file(
     return candidate, None
 
 
+def _read_json_sidecar(
+    root: Path,
+    item: Any,
+    *,
+    label: str,
+) -> tuple[Path | None, dict[str, Any] | None, str | None]:
+    path, error = _evidence_file(root, item, label=label)
+    if error or path is None:
+        return path, None, error
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return path, None, f"{label} is not valid JSON: {exc}"
+    if not isinstance(value, dict):
+        return path, None, f"{label} must contain a JSON object."
+    return path, value, None
+
+
+def _validate_nonempty_sidecar(
+    root: Path,
+    item: Any,
+    *,
+    label: str,
+) -> list[str]:
+    path, error = _evidence_file(root, item, label=label)
+    if error:
+        return [error]
+    if path is None or path.stat().st_size == 0:
+        return [f"{label} must not be empty"]
+    return []
+
+
+def _validate_sbom(
+    root: Path,
+    item: Any,
+    *,
+    label: str,
+    artifact_sha256: str | None,
+) -> list[str]:
+    _path, document, error = _read_json_sidecar(root, item, label=label)
+    if error:
+        return [error]
+    assert document is not None
+    findings: list[str] = []
+    if document.get("bomFormat") != "CycloneDX":
+        findings.append(f"{label}.bomFormat must be CycloneDX")
+    spec_version = document.get("specVersion")
+    if not isinstance(spec_version, str) or not spec_version.startswith("1."):
+        findings.append(f"{label}.specVersion must be a CycloneDX 1.x version")
+    components = document.get("components")
+    if not isinstance(components, list) or not components:
+        findings.append(f"{label}.components must contain at least one component")
+    if artifact_sha256 is not None and item.get("artifact_sha256") != artifact_sha256:
+        findings.append(f"{label}.artifact_sha256 does not match the packaged artifact")
+    return findings
+
+
+def _validate_native_inventory(
+    root: Path,
+    item: Any,
+    *,
+    label: str,
+    artifact_sha256: str | None,
+) -> list[str]:
+    _path, document, error = _read_json_sidecar(root, item, label=label)
+    if error:
+        return [error]
+    assert document is not None
+    findings: list[str] = []
+    if document.get("schema") != "doc-media-toolkit.native-inventory.v1":
+        findings.append(f"{label}.schema is unsupported")
+    entries = document.get("entries")
+    if not isinstance(entries, list) or not entries:
+        findings.append(f"{label}.entries must contain at least one native file")
+        return findings
+    if artifact_sha256 is not None and item.get("artifact_sha256") != artifact_sha256:
+        findings.append(f"{label}.artifact_sha256 does not match the packaged artifact")
+    for index, entry in enumerate(entries):
+        entry_label = f"{label}.entries[{index}]"
+        if not isinstance(entry, dict):
+            findings.append(f"{entry_label} must be an object")
+            continue
+        relative = entry.get("path")
+        if not isinstance(relative, str) or not relative.strip():
+            findings.append(f"{entry_label}.path is required")
+        else:
+            path = PurePosixPath(relative)
+            if path.is_absolute() or ".." in path.parts:
+                findings.append(f"{entry_label}.path must stay within the artifact")
+        digest = entry.get("sha256")
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", digest):
+            findings.append(
+                f"{entry_label}.sha256 must be a 64-character hexadecimal digest"
+            )
+    return findings
+
+
+def _validate_malware_report(
+    root: Path,
+    item: Any,
+    *,
+    label: str,
+    artifact_sha256: str | None,
+) -> list[str]:
+    _path, document, error = _read_json_sidecar(root, item, label=label)
+    if error:
+        return [error]
+    assert document is not None
+    findings: list[str] = []
+    if document.get("schema") != "doc-media-toolkit.malware-scan.v1":
+        findings.append(f"{label}.schema is unsupported")
+    if document.get("status") != "clean":
+        findings.append(f"{label}.status must be clean")
+    if document.get("exit_code") != 0:
+        findings.append(f"{label}.exit_code must be 0")
+    scanner = document.get("scanner")
+    if not isinstance(scanner, str) or not scanner.strip():
+        findings.append(f"{label}.scanner is required")
+    if (
+        artifact_sha256 is not None
+        and document.get("artifact_sha256") != artifact_sha256
+    ):
+        findings.append(f"{label}.artifact_sha256 does not match the packaged artifact")
+    return findings
+
+
+def _validate_corresponding_source(path: Path, *, label: str) -> list[str]:
+    required = {
+        "build_ffmpeg_runtime.sh",
+        "changes.diff",
+        "SHA256SUMS",
+        "BUILD-INFO.txt",
+        "sources/ffmpeg-8.1.2.tar.xz",
+        "sources/zlib-1.3.2.tar.xz",
+    }
+    required_nonempty = required - {"changes.diff"}
+    try:
+        with tarfile.open(path, mode="r:*") as archive:
+            unsafe: list[str] = []
+            non_regular: list[str] = []
+            regular_sizes: dict[str, list[int]] = {}
+            for member in archive.getmembers():
+                name = member.name.rstrip("/")
+                if not name:
+                    continue
+                member_path = PurePosixPath(name)
+                if member_path.is_absolute() or ".." in member_path.parts:
+                    unsafe.append(name)
+                if not member.isdir() and not member.isreg():
+                    non_regular.append(name)
+                if member.isreg():
+                    relative_name = name.split("/", 1)[1] if "/" in name else name
+                    regular_sizes.setdefault(relative_name, []).append(member.size)
+    except (OSError, tarfile.TarError) as exc:
+        return [f"{label} is not a readable tar archive: {exc}"]
+    findings = [f"{label} contains unsafe archive member paths"] if unsafe else []
+    if non_regular:
+        findings.append(f"{label} contains non-regular archive members")
+    missing = sorted(required - regular_sizes.keys())
+    if missing:
+        findings.append(f"{label} is missing required files: {', '.join(missing)}")
+    empty = sorted(
+        name
+        for name, sizes in regular_sizes.items()
+        if name in required_nonempty and not any(size > 0 for size in sizes)
+    )
+    if empty:
+        findings.append(f"{label} contains empty required files: {', '.join(empty)}")
+    if not any(
+        name.startswith("sources/x264-") and any(size > 0 for size in sizes)
+        for name, sizes in regular_sizes.items()
+    ):
+        findings.append(f"{label} is missing the pinned x264 source archive")
+    return findings
+
+
 def check_public_binary_evidence(
     evidence_path: Path | None,
     dist_dir: Path,
@@ -336,9 +513,10 @@ def check_public_binary_evidence(
         if not isinstance(artifact, dict):
             findings.append(f"{prefix} must be an object")
             continue
-        _path, error = _evidence_file(root, artifact, label=prefix)
+        artifact_path, error = _evidence_file(root, artifact, label=prefix)
         if error:
             findings.append(error)
+        artifact_sha256 = _sha256(artifact_path) if artifact_path is not None else None
         platform_name = artifact.get("platform")
         package_type = artifact.get("package_type")
         if platform_name not in {"macos", "windows"}:
@@ -366,11 +544,13 @@ def check_public_binary_evidence(
             )
             if signature.get("type") != expected_signature:
                 findings.append(f"{prefix}.signature.type must be {expected_signature}")
-            _report, error = _evidence_file(
-                root, signature.get("report"), label=f"{prefix}.signature.report"
+            findings.extend(
+                _validate_nonempty_sidecar(
+                    root,
+                    signature.get("report"),
+                    label=f"{prefix}.signature.report",
+                )
             )
-            if error:
-                findings.append(error)
 
         if platform_name == "macos":
             notarization = artifact.get("notarization")
@@ -380,30 +560,43 @@ def check_public_binary_evidence(
             ):
                 findings.append(f"{prefix} lacks valid Apple notarization evidence")
             else:
-                _report, error = _evidence_file(
-                    root,
-                    notarization.get("report"),
-                    label=f"{prefix}.notarization.report",
+                findings.extend(
+                    _validate_nonempty_sidecar(
+                        root,
+                        notarization.get("report"),
+                        label=f"{prefix}.notarization.report",
+                    )
                 )
-                if error:
-                    findings.append(error)
 
         malware = artifact.get("malware_scan")
         if not isinstance(malware, dict) or malware.get("status") != "clean":
             findings.append(f"{prefix} lacks a clean malware-scan result")
         else:
-            _report, error = _evidence_file(
-                root, malware.get("report"), label=f"{prefix}.malware_scan.report"
+            findings.extend(
+                _validate_malware_report(
+                    root,
+                    malware.get("report"),
+                    label=f"{prefix}.malware_scan.report",
+                    artifact_sha256=artifact_sha256,
+                )
             )
-            if error:
-                findings.append(error)
 
-        for field in ("sbom", "native_inventory"):
-            _sidecar, error = _evidence_file(
-                root, artifact.get(field), label=f"{prefix}.{field}"
+        findings.extend(
+            _validate_sbom(
+                root,
+                artifact.get("sbom"),
+                label=f"{prefix}.sbom",
+                artifact_sha256=artifact_sha256,
             )
-            if error:
-                findings.append(error)
+        )
+        findings.extend(
+            _validate_native_inventory(
+                root,
+                artifact.get("native_inventory"),
+                label=f"{prefix}.native_inventory",
+                artifact_sha256=artifact_sha256,
+            )
+        )
 
         ffmpeg = artifact.get("ffmpeg")
         if not isinstance(ffmpeg, dict) or not isinstance(ffmpeg.get("bundled"), bool):
@@ -420,13 +613,19 @@ def check_public_binary_evidence(
                 findings.append(f"{prefix}.ffmpeg.configuration is incomplete")
             if ffmpeg.get("license") != "GPL-3.0-or-later":
                 findings.append(f"{prefix}.ffmpeg.license must be GPL-3.0-or-later")
-            _source, error = _evidence_file(
+            source, error = _evidence_file(
                 root,
                 ffmpeg.get("corresponding_source"),
                 label=f"{prefix}.ffmpeg.corresponding_source",
             )
             if error:
                 findings.append(error)
+            elif source is not None:
+                findings.extend(
+                    _validate_corresponding_source(
+                        source, label=f"{prefix}.ffmpeg.corresponding_source"
+                    )
+                )
         elif (
             not isinstance(ffmpeg.get("runtime_requirement"), str)
             or not ffmpeg["runtime_requirement"].strip()

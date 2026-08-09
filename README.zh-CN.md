@@ -120,7 +120,7 @@ pptx-tools images --help
 
 当前源码版本标识为**稳定版 0.2.1**。PPTX 压缩、水印、视频资产库及主要文档兼容能力已经过确认；图片资产管理是附加能力，尚未完成与核心功能同等级的深度实测。主窗口、水印、压缩和帮助中心支持简体中文与英文；视频库和图片库目前仍以中文为主。首次启动默认使用英文，也可在启动前设置 `PPTX_TOOLS_LANG=zh` 切换中文。
 
-公开仓库名为 `doc-media-toolkit`；Python 分发包和 CLI 保留 `pptx-tools`，避免破坏现有脚本。0.2.0 的 DMG/EXE 候选在产物审计后已改回 Draft，禁止重新公开；替换安装包必须使用 0.2.1 或更高版本。剩余阻塞包括 Developer ID/公证或 Authenticode 签名、GPL FFmpeg 对应源码交付、SBOM/原生库清单、恶意软件扫描证据和 Windows Qt 分发路径；详见[候选产物审计](docs/releases/v0.2.0-candidate-audit.md)。
+公开仓库名为 `doc-media-toolkit`；Python 分发包和 CLI 保留 `pptx-tools`，避免破坏现有脚本。0.2.0 的 DMG/EXE 候选在产物审计后已改回 Draft，禁止重新公开；替换安装包必须使用 0.2.1 或更高版本。剩余阻塞包括 Developer ID/公证或 Authenticode 签名、目标平台恶意软件扫描证据、产物级 SBOM/原生库清单和 Windows Qt 分发路径。仓库已提供失败关闭的证据工具，并保留固定来源的 FFmpeg 对应源码包；工具不会把未扫描的本地候选包变成正式公开包。详见[候选产物审计](docs/releases/v0.2.0-candidate-audit.md)。
 
 替换候选不再复用 Homebrew/Gyan FFmpeg 二进制：正式构建以 SHA-256 固定 FFmpeg 8.1.2、x264 与 zlib 1.3.2 源码，保留 libx264、macOS VideoToolbox 和 Windows Media Foundation 编码，并为每个平台包自动生成匹配的对应源码资产。
 

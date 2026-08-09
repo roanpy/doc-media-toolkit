@@ -132,6 +132,10 @@ python scripts/run_compression_benchmark.py --self-check
   release workflow 都只允许手动触发，普通 push 和 tag 均不启动远程构建。
 - 发布前运行 `scripts/release_audit.py --check`：工作树干净、锁文件一致、可选漏洞扫描、
   可选 SBOM 与产物哈希齐备；`pip-audit` 为外部工具，CycloneDX 由 uv 导出。
+- 目标平台产物还必须运行 `scripts/generate_native_inventory.py` 和
+  `scripts/scan_release_artifact.py`；前者记录解包目录的原生文件清单，后者必须从
+  ClamAV 或 Windows Defender 得到绑定产物 SHA-256 的 `clean` 报告；SBOM 和原生清单
+  侧车也必须绑定同一产物 SHA-256。无扫描器只能得到 `unavailable`，不得进入公开二进制门禁。
 - 跨平台产物必须在对应平台构建；PyInstaller 不支持交叉编译，macOS 本地验证
   不能当作 Windows 可运行证据。
 - macOS 候选产物默认 ad-hoc 签名；Developer ID 公证需单独配置 keychain profile。

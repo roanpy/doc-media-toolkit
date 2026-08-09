@@ -33,6 +33,9 @@ class OpenSourceReadinessTest(unittest.TestCase):
             "docs/releases/v0.2.0.md",
             "docs/releases/v0.2.0-candidate-audit.md",
             "scripts/build_ffmpeg_runtime.sh",
+            "scripts/generate_native_inventory.py",
+            "scripts/scan_release_artifact.py",
+            "scripts/release_audit.py",
             "licenses/GPL-3.0-only.txt",
             "licenses/LGPL-3.0-only.txt",
             ".github/pull_request_template.md",
@@ -94,6 +97,20 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertIn("--enable-videotoolbox", script)
         self.assertIn("--enable-mediafoundation", script)
         self.assertIn("corresponding-source", script)
+
+    def test_release_evidence_tools_are_fail_closed_and_documented(self) -> None:
+        inventory = (ROOT / "scripts/generate_native_inventory.py").read_text(
+            encoding="utf-8"
+        )
+        malware = (ROOT / "scripts/scan_release_artifact.py").read_text(
+            encoding="utf-8"
+        )
+        release = (ROOT / "docs/RELEASE.md").read_text(encoding="utf-8")
+        self.assertIn('"doc-media-toolkit.native-inventory.v1"', inventory)
+        self.assertIn('"doc-media-toolkit.malware-scan.v1"', malware)
+        self.assertIn("No supported malware scanner found", malware)
+        self.assertIn("generate_native_inventory.py", release)
+        self.assertIn("scan_release_artifact.py", release)
 
 
 if __name__ == "__main__":
