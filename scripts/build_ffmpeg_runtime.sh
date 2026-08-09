@@ -25,6 +25,7 @@ zlib_archive="zlib-${ZLIB_VERSION}.tar.xz"
 ffmpeg_url="https://ffmpeg.org/releases/${ffmpeg_archive}"
 x264_url="https://code.videolan.org/videolan/x264/-/archive/${X264_COMMIT}/${x264_archive}"
 zlib_url="https://zlib.net/${zlib_archive}"
+zlib_fallback_url="https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/${zlib_archive}"
 
 sha256_file() {
   if command -v shasum >/dev/null 2>&1; then
@@ -45,9 +46,28 @@ download_verified() {
   fi
 }
 
+download_verified_any() {
+  local destination="$1" expected="$2"
+  shift 2
+  local url actual
+  for url in "$@"; do
+    if ! curl --fail --location --retry 3 --output "$destination" "$url"; then
+      echo "Download failed for $(basename "$destination") from $url; trying the next pinned source." >&2
+      continue
+    fi
+    actual="$(sha256_file "$destination")"
+    if [[ "$actual" == "$expected" ]]; then
+      return 0
+    fi
+    echo "SHA-256 mismatch for $(basename "$destination") from $url: $actual" >&2
+  done
+  echo "No verified source available for $(basename "$destination")" >&2
+  exit 1
+}
+
 download_verified "$ffmpeg_url" "$work_dir/$ffmpeg_archive" "$FFMPEG_SHA256"
 download_verified "$x264_url" "$work_dir/$x264_archive" "$X264_SHA256"
-download_verified "$zlib_url" "$work_dir/$zlib_archive" "$ZLIB_SHA256"
+download_verified_any "$work_dir/$zlib_archive" "$ZLIB_SHA256" "$zlib_url" "$zlib_fallback_url"
 tar -xf "$work_dir/$ffmpeg_archive" -C "$work_dir"
 tar -xf "$work_dir/$x264_archive" -C "$work_dir"
 tar -xf "$work_dir/$zlib_archive" -C "$work_dir"

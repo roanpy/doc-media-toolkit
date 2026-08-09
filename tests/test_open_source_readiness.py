@@ -93,6 +93,8 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertIn('FFMPEG_SHA256="464beb5e', script)
         self.assertIn('X264_COMMIT="b35605ace3dd', script)
         self.assertIn('ZLIB_VERSION="1.3.2"', script)
+        self.assertIn("download_verified_any", script)
+        self.assertIn("github.com/madler/zlib/releases/download", script)
         self.assertIn("--enable-libx264", script)
         self.assertIn("--enable-videotoolbox", script)
         self.assertIn("--enable-mediafoundation", script)
