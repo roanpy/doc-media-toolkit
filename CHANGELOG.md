@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+
+- Parse user-supplied Office XML parts with `defusedxml` to reject unsafe entity
+  declarations before relationship and media analysis.
+
 ## [0.2.1] - 2026-08-09
 
 ### Added

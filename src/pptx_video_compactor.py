@@ -30,6 +30,7 @@ from PIL import (
     PngImagePlugin,
     UnidentifiedImageError,
 )
+from defusedxml import ElementTree as SafeET
 
 from pptx_output_watermark.process_utils import (
     finish_process,
@@ -1061,7 +1062,7 @@ def parse_relationships(zf: ZipFile, slide_xml_path: str) -> dict[str, str]:
     rel_path = f"ppt/slides/_rels/{slide_name}.rels"
     if rel_path not in zf.namelist():
         return {}
-    root = ET.fromstring(zf.read(rel_path))
+    root = SafeET.fromstring(zf.read(rel_path))
     rels: dict[str, str] = {}
     for rel in root.findall("pr:Relationship", REL_NS):
         rel_id = rel.attrib["Id"]
@@ -1079,7 +1080,7 @@ def referenced_ooxml_images(
         if owner is None or owner not in members or not owner.startswith(owner_prefix):
             continue
         try:
-            root = ET.fromstring(zf.read(rels_path))
+            root = SafeET.fromstring(zf.read(rels_path))
         except (ET.ParseError, KeyError):
             continue
         for relationship in root.findall("pr:Relationship", REL_NS):
@@ -1105,7 +1106,7 @@ def slide_image_occurrences(
     slide_cy: int,
 ) -> list[ImageOccurrence]:
     rels = parse_relationships(zf, slide_path)
-    root = ET.fromstring(zf.read(slide_path))
+    root = SafeET.fromstring(zf.read(slide_path))
     slide_number = int(Path(slide_path).stem.replace("slide", ""))
     occurrences: list[ImageOccurrence] = []
     for pic in root.findall(".//p:pic", NS):
@@ -1144,7 +1145,7 @@ def parse_pptx_assets(
     include_videos: bool = True,
 ) -> tuple[dict[str, VideoAsset], dict[str, ImageAsset], dict[str, Any]]:
     with ZipFile(pptx_path) as zf:
-        presentation = ET.fromstring(zf.read("ppt/presentation.xml"))
+        presentation = SafeET.fromstring(zf.read("ppt/presentation.xml"))
         slide_size = presentation.find("p:sldSz", NS)
         if slide_size is None:
             raise SystemExit("Could not read slide size from presentation.xml")
@@ -1167,7 +1168,7 @@ def parse_pptx_assets(
         for slide_path in slide_paths:
             slide_number = int(Path(slide_path).stem.replace("slide", ""))
             rels = parse_relationships(zf, slide_path)
-            root = ET.fromstring(zf.read(slide_path))
+            root = SafeET.fromstring(zf.read(slide_path))
             for pic in root.findall(".//p:pic", NS):
                 nv_pic = pic.find("./p:nvPicPr", NS)
                 sp_pr = pic.find("./p:spPr/a:xfrm", NS)
@@ -2666,7 +2667,7 @@ def rewrite_content_types(xml_bytes: bytes, assets: dict[str, VideoAsset]) -> by
     if not required:
         return xml_bytes
 
-    root = ET.fromstring(xml_bytes)
+    root = SafeET.fromstring(xml_bytes)
     default_tag = f"{{{CONTENT_TYPES_NS}}}Default"
     existing: dict[str, ET.Element] = {}
     for default in root.findall(default_tag):
@@ -2695,7 +2696,7 @@ def rewrite_relationships(
     if source_xml is None:
         return xml_bytes
 
-    root = ET.fromstring(xml_bytes)
+    root = SafeET.fromstring(xml_bytes)
     changed = False
     for rel in root.findall("pr:Relationship", REL_NS):
         if rel.attrib.get("TargetMode") == "External":
