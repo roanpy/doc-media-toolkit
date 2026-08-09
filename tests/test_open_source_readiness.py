@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -16,6 +17,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class OpenSourceReadinessTest(unittest.TestCase):
+    def test_macos_preferred_language_parser(self) -> None:
+        completed = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout='(\n    "zh-Hans-US",\n    "en-US"\n)\n',
+            stderr="",
+        )
+        with (
+            patch("pptx_tools.language.sys.platform", "darwin"),
+            patch("pptx_tools.language.subprocess.run", return_value=completed),
+        ):
+            from pptx_tools.language import _macos_preferred_language
+
+            self.assertEqual(_macos_preferred_language(), "zh-Hans-US")
+
     def test_public_entry_points_and_policy_files_are_present(self) -> None:
         required = (
             "LICENSE",
@@ -60,7 +76,10 @@ class OpenSourceReadinessTest(unittest.TestCase):
             (detect_watermark_language, "PPTX_OUTPUT_WATERMARK_LANG"),
             (detect_compactor_language, "PPTX_VIDEO_COMPACTOR_LANG"),
         )
-        with patch("pptx_tools.language.QLocale.system") as system_locale:
+        with (
+            patch("pptx_tools.language._macos_preferred_language", return_value=""),
+            patch("pptx_tools.language.QLocale.system") as system_locale,
+        ):
             system_locale.return_value.name.return_value = "zh_CN"
             for detector, variable in detectors:
                 with self.subTest(detector=detector.__module__, locale="zh"):
@@ -74,6 +93,39 @@ class OpenSourceReadinessTest(unittest.TestCase):
                     with patch.dict(os.environ, {variable: "zh-CN"}, clear=True):
                         self.assertEqual(detector(), "zh")
                     with patch.dict(os.environ, {variable: "en-US"}, clear=True):
+                        self.assertEqual(detector(), "en")
+
+    def test_macos_native_language_wins_over_posix_qt_locale(self) -> None:
+        detectors = (
+            (detect_shell_language, "PPTX_TOOLS_LANG"),
+            (detect_watermark_language, "PPTX_OUTPUT_WATERMARK_LANG"),
+            (detect_compactor_language, "PPTX_VIDEO_COMPACTOR_LANG"),
+        )
+        with (
+            patch(
+                "pptx_tools.language._macos_preferred_language",
+                return_value="zh-Hans-US",
+            ),
+            patch("pptx_tools.language.QLocale.system") as system_locale,
+        ):
+            system_locale.return_value.name.return_value = "C"
+            for detector, variable in detectors:
+                with self.subTest(detector=detector.__module__):
+                    with patch.dict(
+                        os.environ,
+                        {"LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"},
+                        clear=True,
+                    ):
+                        self.assertEqual(detector(), "zh")
+                    with patch.dict(
+                        os.environ,
+                        {
+                            "LANG": "C.UTF-8",
+                            "LC_ALL": "C.UTF-8",
+                            variable: "en-US",
+                        },
+                        clear=True,
+                    ):
                         self.assertEqual(detector(), "en")
 
     def test_public_readmes_show_current_version(self) -> None:

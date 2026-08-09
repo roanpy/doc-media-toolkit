@@ -435,7 +435,10 @@ class AutomaticAuditWorkflowTest(unittest.TestCase):
             settings.remove(key)
         window = None
         try:
-            window = CompressionMainWindow()
+            with patch.dict(
+                os.environ, {"PPTX_VIDEO_COMPACTOR_LANG": "en"}, clear=False
+            ):
+                window = CompressionMainWindow()
             self.assertEqual(window.archive_mode_select.currentData(), "off")
             self.assertEqual(window.image_archive_mode_select.currentData(), "off")
             self.assertIn("optional", window.archive_mode_label.text().lower())
@@ -923,7 +926,8 @@ class DesktopLifecycleTest(unittest.TestCase):
         window.close()
 
     def test_shared_shell_uses_canonical_header_and_text_tabs(self) -> None:
-        window = ToolboxMainWindow()
+        with patch.dict(os.environ, {"PPTX_TOOLS_LANG": "en"}, clear=False):
+            window = ToolboxMainWindow()
         self.assertEqual(window.minimumWidth(), 880)
         self.assertEqual(window.header_card.height(), 58)
         self.assertTrue(window.header_eyebrow.isHidden())
