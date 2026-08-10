@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   schemas, binds the SBOM and native inventory to the packaged artifact hash, and
   checks the contents of the bundled FFmpeg corresponding-source archive; empty
   or placeholder sidecars fail closed.
+- Project-specific confidential phrases can be kept in a Git-ignored local
+  denylist, and public-safety failures no longer echo matched private text.
 
 ### Added
 

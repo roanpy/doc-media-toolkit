@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -12,6 +13,7 @@ from pptx_tools import __version__
 from pptx_tools.gui import detect_language as detect_shell_language
 from pptx_tools.gui import help_topics
 from pptx_video_compactor_gui import detect_language as detect_compactor_language
+from scripts.check_public_safety import check_file_content, private_denylist_patterns
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -139,6 +141,20 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertEqual(__version__, "0.2.2")
         for name in ("README.md", "README.zh-CN.md"):
             self.assertIn(__version__, (ROOT / name).read_text(encoding="utf-8"))
+
+    def test_private_public_safety_denylist_is_literal_and_not_echoed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / ".public-safety-denylist.local").write_text(
+                "# private phrases\nProject [Alpha]\n", encoding="utf-8"
+            )
+            sample = root / "sample.txt"
+            sample.write_text("Internal project [alpha]", encoding="utf-8")
+
+            findings = check_file_content(root, sample, private_denylist_patterns(root))
+
+            self.assertEqual(findings, ["sample.txt: matched sensitive/local pattern"])
+            self.assertNotIn("Project", findings[0])
 
     def test_source_distribution_includes_document_fixtures(self) -> None:
         manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8")
