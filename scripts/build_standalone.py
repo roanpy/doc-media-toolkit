@@ -356,7 +356,7 @@ def _distribution_notice_files(name: str) -> tuple[list[Path], bool]:
     return sorted(dict.fromkeys(files)), has_license_text
 
 
-def runtime_distribution_names(project_name: str = "pptx-tools") -> list[str]:
+def runtime_distribution_names(project_name: str = "doc-media-toolkit") -> list[str]:
     environment = default_environment()
     environment["extra"] = ""
     pending = [project_name]

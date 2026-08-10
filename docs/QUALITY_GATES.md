@@ -91,6 +91,7 @@ pptx-tools images doctor IMAGE_LIBRARY --verify-hashes
 
 ```bash
 python scripts/release_audit.py --check
+uv run --with pip-audit python scripts/release_audit.py --check
 ```
 
 该入口覆盖 Git 分支/提交溯源与干净工作树检查、`uv lock --check` /
@@ -132,6 +133,8 @@ python scripts/run_compression_benchmark.py --self-check
   release workflow 都只允许手动触发，普通 push 和 tag 均不启动远程构建。
 - 发布前运行 `scripts/release_audit.py --check`：工作树干净、锁文件一致、可选漏洞扫描、
   可选 SBOM 与产物哈希齐备；`pip-audit` 为外部工具，CycloneDX 由 uv 导出。
+- 手动 CI 与候选构建必须从 `uv.lock` 导出带哈希的精确依赖，不得在构建时按宽泛下限
+  重新解析一套未锁定环境。
 - 目标平台产物还必须运行 `scripts/generate_native_inventory.py` 和
   `scripts/scan_release_artifact.py`；前者记录解包目录的原生文件清单，后者必须从
   ClamAV 或 Windows Defender 得到绑定产物 SHA-256 的 `clean` 报告；SBOM 和原生清单

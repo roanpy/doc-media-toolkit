@@ -21,14 +21,19 @@ jobs:
             python: "3.12"
 
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python }}
       - name: Install Linux GUI runtime
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1
-      - run: python -m pip install -e ".[dev]"
+      - name: Install locked dependencies
+        run: |
+          python -m pip install uv
+          uv export --locked --extra dev --no-emit-project --format requirements.txt --output-file requirements.locked.txt
+          python -m pip install --require-hashes -r requirements.locked.txt
+          python -m pip install --no-deps --no-build-isolation -e .
       - run: ruff check src tests scripts
       - run: ruff format --check src tests scripts
       - name: Run tests
@@ -44,12 +49,17 @@ jobs:
     name: Video E2E / Ubuntu
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
-      - run: python -m pip install -e ".[dev]"
+      - name: Install locked dependencies
+        run: |
+          python -m pip install uv
+          uv export --locked --extra dev --no-emit-project --format requirements.txt --output-file requirements.locked.txt
+          python -m pip install --require-hashes -r requirements.locked.txt
+          python -m pip install --no-deps --no-build-isolation -e .
       - run: ruff format --check src tests scripts
       - name: Run required video E2E tests
         run: python -m unittest tests.test_video_manager_e2e -v

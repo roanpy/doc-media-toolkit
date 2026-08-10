@@ -43,6 +43,9 @@ class StandaloneBuildTests(unittest.TestCase):
                 self.assertEqual(_python_license_file(), license_file.resolve())
 
     def test_runtime_license_inventory_follows_transitive_dependencies(self) -> None:
+        self.assertEqual(
+            runtime_distribution_names.__defaults__, ("doc-media-toolkit",)
+        )
         names = {name.lower() for name in runtime_distribution_names()}
         self.assertIn("pyside6", names)
         self.assertIn("lxml", names)

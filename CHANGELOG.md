@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-08-11
+
 ### Security
 
 - Parse user-supplied Office XML parts with `defusedxml` to reject unsafe entity
@@ -20,6 +22,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Added local, dependency-free release helpers for deterministic native-file
   inventories and fail-closed ClamAV/Windows Defender malware reports. They are
   target-host evidence tools and do not run or publish GitHub Actions.
+- Added monthly Dependabot updates for the locked Python graph and SHA-pinned
+  GitHub Actions, plus explicit repository rules for AI-assisted changes.
+
+### Fixed
+
+- Renamed the Python distribution to `doc-media-toolkit` to avoid collision with
+  an unrelated PyPI project; the `pptx_tools` import package and existing CLI
+  commands remain compatible.
+- Manual CI and candidate builds now install exact, hashed dependency versions
+  exported from `uv.lock` instead of resolving unconstrained newer packages.
+- Python source distributions now include the generated DOCX/XLSX fixtures
+  required by their packaged tests.
 
 ## [0.2.1] - 2026-08-09
 
