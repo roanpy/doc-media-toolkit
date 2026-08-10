@@ -10,7 +10,7 @@
 
 已完成：
 
-- 公开项目骨架：`doc-media-toolkit`（Python 包和 CLI 保留 `pptx-tools` 兼容名）。
+- 公开项目骨架与分发名：`doc-media-toolkit`（导入包保留 `pptx_tools`，CLI 保留 `pptx-tools` 兼容名）。
 - 已复制水印导出核心代码：`src/pptx_output_watermark/`。
 - 已复制并扩展媒体压缩核心代码：`src/pptx_video_compactor.py`。
 - 已复制并扩展媒体压缩 GUI：`src/pptx_video_compactor_gui.py`。

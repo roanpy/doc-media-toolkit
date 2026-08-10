@@ -91,6 +91,47 @@ wheels = [
 ]
 
 [[package]]
+name = "doc-media-toolkit"
+source = { editable = "." }
+dependencies = [
+    { name = "comtypes", marker = "sys_platform == 'win32'" },
+    { name = "defusedxml" },
+    { name = "pikepdf" },
+    { name = "pillow" },
+    { name = "pypdf" },
+    { name = "pypdfium2" },
+    { name = "pyside6" },
+    { name = "python-pptx" },
+    { name = "reportlab" },
+]
+
+[package.optional-dependencies]
+build = [
+    { name = "pyinstaller" },
+]
+dev = [
+    { name = "ruff" },
+    { name = "setuptools" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "comtypes", marker = "sys_platform == 'win32'", specifier = ">=1.4.1" },
+    { name = "defusedxml", specifier = ">=0.7.1" },
+    { name = "pikepdf", specifier = ">=10.0" },
+    { name = "pillow", specifier = ">=10.0" },
+    { name = "pyinstaller", marker = "extra == 'build'", specifier = ">=6.0" },
+    { name = "pypdf", specifier = ">=5.0" },
+    { name = "pypdfium2", specifier = ">=4.0" },
+    { name = "pyside6", specifier = ">=6.9" },
+    { name = "python-pptx", specifier = ">=1.0.2" },
+    { name = "reportlab", specifier = ">=4.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12" },
+    { name = "setuptools", marker = "extra == 'dev'", specifier = ">=68" },
+]
+provides-extras = ["build", "dev"]
+
+[[package]]
 name = "lxml"
 version = "6.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -301,45 +342,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/08/14/f6ba68107680ffa74b39985f3f30884e41318fbc4250caa423c79b4788bb/pillow-12.3.0-pp311-pypy311_pp73-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:e7e480451b9fa137494bccd3a7d69adbe8ac65a87d97be61e11f1b1050a5bac3", size = 5860358, upload-time = "2026-07-01T11:56:32.68Z" },
     { url = "https://files.pythonhosted.org/packages/36/54/0169bc772ec491108b62f644f8ecf1fe5d8ae5ebafde2ee2142210166903/pillow-12.3.0-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:04f01d28a6aaff387bf842a13be313df23ba0597a44f1a976c9feb3c6ff4711a", size = 7231786, upload-time = "2026-07-01T11:56:35.046Z" },
 ]
-
-[[package]]
-name = "pptx-tools"
-source = { editable = "." }
-dependencies = [
-    { name = "comtypes", marker = "sys_platform == 'win32'" },
-    { name = "defusedxml" },
-    { name = "pikepdf" },
-    { name = "pillow" },
-    { name = "pypdf" },
-    { name = "pypdfium2" },
-    { name = "pyside6" },
-    { name = "python-pptx" },
-    { name = "reportlab" },
-]
-
-[package.optional-dependencies]
-build = [
-    { name = "pyinstaller" },
-]
-dev = [
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "comtypes", marker = "sys_platform == 'win32'", specifier = ">=1.4.1" },
-    { name = "defusedxml", specifier = ">=0.7.1" },
-    { name = "pikepdf", specifier = ">=10.0" },
-    { name = "pillow", specifier = ">=10.0" },
-    { name = "pyinstaller", marker = "extra == 'build'", specifier = ">=6.0" },
-    { name = "pypdf", specifier = ">=5.0" },
-    { name = "pypdfium2", specifier = ">=4.0" },
-    { name = "pyside6", specifier = ">=6.9" },
-    { name = "python-pptx", specifier = ">=1.0.2" },
-    { name = "reportlab", specifier = ">=4.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12" },
-]
-provides-extras = ["build", "dev"]
 
 [[package]]
 name = "pyinstaller"

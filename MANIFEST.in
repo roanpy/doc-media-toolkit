@@ -1,0 +1,2 @@
+include tests/fixtures/*.docx
+include tests/fixtures/*.xlsx

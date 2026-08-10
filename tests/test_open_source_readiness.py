@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import unittest
 from pathlib import Path
@@ -41,10 +42,12 @@ class OpenSourceReadinessTest(unittest.TestCase):
             "CODE_OF_CONDUCT.md",
             "SECURITY.md",
             "THIRD_PARTY_NOTICES.md",
+            "MANIFEST.in",
             "docs/LICENSING.md",
             "docs/DEPENDENCIES.md",
             "docs/INSTALL.md",
             "docs/INSTALL.zh-CN.md",
+            "docs/releases/v0.2.2.md",
             "docs/releases/v0.2.1.md",
             "docs/releases/v0.2.0.md",
             "docs/releases/v0.2.0-candidate-audit.md",
@@ -61,6 +64,10 @@ class OpenSourceReadinessTest(unittest.TestCase):
 
         metadata = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
         self.assertIn('license = "MIT"', metadata)
+        self.assertIn('name = "doc-media-toolkit"', metadata)
+        self.assertNotIn('name = "pptx-tools"', metadata)
+        self.assertIn('pptx-tools = "pptx_tools.cli:main"', metadata)
+        self.assertIn('pptx-tools-gui = "pptx_tools.gui:main"', metadata)
         self.assertNotIn("LicenseRef-Proprietary", metadata)
         self.assertIn("github.com/roanpy/doc-media-toolkit", metadata)
         self.assertNotIn("github.com/roanpy/pptx-tools", metadata)
@@ -129,9 +136,14 @@ class OpenSourceReadinessTest(unittest.TestCase):
                         self.assertEqual(detector(), "en")
 
     def test_public_readmes_show_current_version(self) -> None:
-        self.assertEqual(__version__, "0.2.1")
+        self.assertEqual(__version__, "0.2.2")
         for name in ("README.md", "README.zh-CN.md"):
             self.assertIn(__version__, (ROOT / name).read_text(encoding="utf-8"))
+
+    def test_source_distribution_includes_document_fixtures(self) -> None:
+        manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8")
+        self.assertIn("tests/fixtures/*.docx", manifest)
+        self.assertIn("tests/fixtures/*.xlsx", manifest)
 
     def test_release_workflow_builds_candidates_without_publish_permission(
         self,
@@ -143,9 +155,24 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertNotIn("release_tag", workflow)
         self.assertNotIn("gh release", workflow)
         self.assertNotIn("--windows-onefile", workflow)
+        self.assertIn("uv export --locked --all-extras", workflow)
+        self.assertIn("pip install --require-hashes", workflow)
         self.assertIn("- macos", workflow)
         self.assertIn("scripts/build_ffmpeg_runtime.sh", workflow)
         self.assertNotIn("GyanD/codexffmpeg", workflow)
+
+        ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn("uv export --locked --extra dev", ci)
+        self.assertIn("pip install --require-hashes", ci)
+
+    def test_github_actions_are_pinned_to_full_commit_shas(self) -> None:
+        for name in ("ci.yml", "release.yml"):
+            workflow = (ROOT / ".github" / "workflows" / name).read_text(
+                encoding="utf-8"
+            )
+            refs = re.findall(r"\buses:\s+[^@\s]+@([^\s]+)", workflow)
+            self.assertTrue(refs, name)
+            self.assertTrue(all(re.fullmatch(r"[0-9a-f]{40}", ref) for ref in refs))
 
     def test_bundled_ffmpeg_build_is_pinned_and_ships_corresponding_source(
         self,
