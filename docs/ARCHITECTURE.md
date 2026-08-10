@@ -16,8 +16,8 @@ Doc Media Toolkit 是本地优先的 PySide6 桌面应用，同时提供统一 C
 应用默认不依赖云服务。OpenAI 兼容接口是可选的整理建议能力，不参与数据一致性
 判断，也不能自动归并或删除资产。
 
-对外产品名固定为 `Doc Media Toolkit` / `文档媒体工具箱`，公开仓库为
-`doc-media-toolkit`；Python 包和 CLI 保留 `pptx-tools` 作为兼容标识。主壳、水印、压缩和帮助中心通过系统界面语言
+对外产品名固定为 `Doc Media Toolkit` / `文档媒体工具箱`，公开仓库和 Python 分发名为
+`doc-media-toolkit`；导入包保留 `pptx_tools`，CLI 保留 `pptx-tools` 作为兼容标识。主壳、水印、压缩和帮助中心通过系统界面语言
 或 `PPTX_TOOLS_LANG` 选择中英文（后者也接受 `en`）；视频库和图片库业务界面当前仍以中文为主，
 因此发布说明不得宣称完整双语。
 
@@ -237,7 +237,7 @@ IMAGE_LIBRARY/
 内置工具、签名结构、离屏启动与 `hdiutil verify`。
 
 `ci.yml` 与 `release.yml` 都只允许手动触发，避免普通 push 或 tag 消耗远程构建。
-两者都在测试/打包前执行全仓 Ruff 格式检查。平台产物必须在对应
+两者都从 `uv.lock` 导出带哈希的精确依赖，并在测试/打包前执行全仓 Ruff 格式检查。平台产物必须在对应
 平台构建，不能把 macOS 本地验证当作 Windows 可运行证据。
 
 `scripts/release_audit.py` 是不依赖远程 CI 的本地发布前审计入口，覆盖 Git 分支/提交

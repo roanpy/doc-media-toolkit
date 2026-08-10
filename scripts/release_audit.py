@@ -145,7 +145,8 @@ def check_pip_audit() -> dict[str, Any]:
             "status": "skipped",
             "detail": (
                 "pip-audit not found in PATH. It is an external, opt-in tool: "
-                "install it in an isolated env (e.g. `uvx pip-audit`) to run this step."
+                "run `uv run --with pip-audit python scripts/release_audit.py "
+                "--check` to audit the locked project environment."
             ),
         }
     result = _run(command, timeout=600)

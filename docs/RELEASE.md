@@ -128,7 +128,7 @@ Notes:
 - Video library preferences use platform-native Qt settings. Rotating application logs remain under the platform application-data directory.
 - Libraries keep a last-valid `video-project.json.bak`, reject stale concurrent saves, and relink renamed or moved video files by SHA-256.
 - Video and image cleanup use a recoverable intent log before moving files. New quarantine paths are project-relative, restore verifies SHA-256, and any path outside the managed media/cleanup roots fails closed.
-- Candidate jobs build FFmpeg 8.1.2, x264, and zlib 1.3.2 from pinned, hashed source; smoke-launch the GUI; verify bundled tools and macOS DMG/signature structure; and emit the corresponding-source archive, per-platform checksums, SBOMs, dependency audits, and FFmpeg build information. Native inventories and malware results are produced on the target host with the local commands below; a candidate build is never a clean-scan claim and never publishes a GitHub Release.
+- Candidate jobs install exact Python dependency versions and hashes exported from `uv.lock`; build FFmpeg 8.1.2, x264, and zlib 1.3.2 from pinned, hashed source; smoke-launch the GUI; verify bundled tools and macOS DMG/signature structure; and emit the corresponding-source archive, per-platform checksums, SBOMs, dependency audits, and FFmpeg build information. Native inventories and malware results are produced on the target host with the local commands below; a candidate build is never a clean-scan claim and never publishes a GitHub Release.
 - Windows release builds download Poppler `26.02.0-0` from the pinned `oschwartz10612/poppler-windows` release and verify SHA-256 (`993e4a94376ed712fafc7058d724ea0b943d118bbd2305cd9ed55174eb85cda5`) before PDF tests. Poppler remains a build/test runtime and is not bundled into the standard app.
 - Watermark, compression, video-library, and image-library UI logs share the same rotating application log.
 - Both `ci.yml` and `release.yml` are manual-only. Pushing commits or tags does not consume Actions minutes; a maintainer must explicitly dispatch a workflow. Both workflows enforce `ruff check src tests scripts` and `ruff format --check src tests scripts` before tests/builds; Markdown examples are reviewed separately and are not treated as Python source.
@@ -142,6 +142,7 @@ on each build host before producing a release artifact.
 
 ```bash
 python scripts/release_audit.py --check
+uv run --with pip-audit python scripts/release_audit.py --check
 python scripts/release_audit.py --check --with-sbom dist/sbom.json
 python scripts/release_audit.py --check --public-binary \
   --dist-dir release-assets \
@@ -154,7 +155,8 @@ python scripts/release_audit.py --check --public-binary \
 - Git branch/commit provenance and a clean working-tree requirement before release.
 - `uv lock --check` and `uv sync --locked --dry-run` (lockfile integrity).
 - `pip-audit` as an **external, opt-in tool**: if absent it is reported as a
-  skipped step and is never added as a runtime dependency.
+  skipped step and is never added as a runtime dependency. Use the shown
+  `uv run --with pip-audit ...` form when a vulnerability scan is required.
 - Optional CycloneDX SBOM via `uv export --format cyclonedx1.5` when explicitly requested
   with `--with-sbom`.
 - Packaged binary version (from `pptx_tools.__version__`) plus SHA-256 hashes for

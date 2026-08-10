@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pptx-tools"
+name = "doc-media-toolkit"
 dynamic = ["version"]
 description = "Privacy-first desktop and CLI toolkit for watermarking, size-aware document media compression, and asset management."
 readme = "README.md"
@@ -43,7 +43,7 @@ dependencies = [
 
 [project.optional-dependencies]
 build = ["PyInstaller>=6.0"]
-dev = ["ruff>=0.12"]
+dev = ["ruff>=0.12", "setuptools>=68"]
 
 [project.scripts]
 pptx-tools = "pptx_tools.cli:main"

@@ -1,7 +1,7 @@
 # 智能目标容量压缩规格
 
 状态：Grill 已完成；PPTX、附带媒体及 DOCX/PDF/XLSX 图片压缩后端已进入正式主线
-适用仓库：`doc-media-toolkit`（Python 包和 CLI 兼容名：`pptx-tools`）
+适用仓库/分发：`doc-media-toolkit`（导入包：`pptx_tools`；CLI 兼容名：`pptx-tools`）
 目标分支：`main`
 
 当前实现检查点：正式主线的 PPTX/附带媒体已具备关系图扫描、显示面积/复用权重、联合

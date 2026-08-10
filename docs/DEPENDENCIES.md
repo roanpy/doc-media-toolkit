@@ -26,11 +26,13 @@ The default installation represents the complete desktop product. It intentional
 
 - `PyInstaller`: `build` extra; used to create standalone apps. Its bootloader becomes part of the artifact, so its exception notice is bundled.
 - `Ruff`: `dev` extra; lint and formatting only.
+- `setuptools`: `dev` extra and PEP 517 build backend; locking it lets CI install the editable project with `--no-build-isolation` instead of fetching an unreviewed build-tool version.
 - FFmpeg/FFprobe, LibreOffice, Microsoft Office, WPS Office, Keynote, Pages, and Poppler are native runtimes rather than Python package dependencies. Formal desktop packages bundle the pinned FFmpeg 8.1.2/x264/zlib build; source runs may use configured or system FFmpeg. The office engines and Poppler remain external unless an explicit offline LibreOffice build is requested.
 - The manual Windows release workflow retrieves Poppler `26.02.0-0` from the upstream Windows packaging project and verifies its SHA-256 before running PDF tests; this pinned test input is not redistributed with the app.
 
 - `PyInstaller` 属于 `build` extra，用于生成独立应用；bootloader 会进入产物，因此打包其例外条款。
 - `Ruff` 属于 `dev` extra，只用于检查与格式化。
+- `setuptools` 属于 `dev` extra 和 PEP 517 构建后端；将其锁定后，CI 可用 `--no-build-isolation` 安装项目，避免临时下载未经锁定的构建工具版本。
 - FFmpeg/FFprobe、LibreOffice、Microsoft Office、WPS Office、Keynote、Pages、Poppler 是原生运行时，不属于 Python 包依赖。正式桌面包内置固定源码构建的 FFmpeg 8.1.2/x264/zlib；源码运行可使用显式配置或系统 FFmpeg。办公引擎与 Poppler 仍是外部程序，除非显式构建完整离线 LibreOffice 版本。
 - 手动 Windows 发布工作流从上游 Windows 打包项目下载 Poppler `26.02.0-0`，先校验 SHA-256 再运行 PDF 测试；该固定测试依赖不会随应用分发。
 

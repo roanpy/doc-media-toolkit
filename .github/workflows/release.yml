@@ -30,10 +30,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
@@ -103,8 +103,11 @@ jobs:
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[build,dev]"
-          python -m pip install pip-audit uv
+          python -m pip install uv
+          uv export --locked --all-extras --no-emit-project --format requirements.txt --output-file requirements.locked.txt
+          python -m pip install --require-hashes -r requirements.locked.txt
+          python -m pip install --no-deps --no-build-isolation -e .
+          python -m pip install pip-audit
 
       - name: Lint Python modules
         run: ruff check src tests scripts
@@ -208,7 +211,7 @@ jobs:
           } | Set-Content "release-assets/SHA256SUMS-${{ matrix.platform }}.txt"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-${{ matrix.platform }}
           path: release-assets/*
