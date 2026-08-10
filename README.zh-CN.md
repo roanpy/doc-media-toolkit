@@ -150,6 +150,8 @@ QT_QPA_PLATFORM=offscreen PYTHONPATH=src:tests .venv/bin/python scripts/run_test
 ```
 
 GitHub workflow 仅允许手动触发；本地检查是默认质量门禁。
+如需检查项目专属的保密名称，可在 Git 忽略的 `.public-safety-denylist.local`
+中每行写一个原样短语；扫描结果不会回显该私有文字。
 
 ## AI 开发协助说明
 

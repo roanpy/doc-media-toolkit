@@ -9,6 +9,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+.public-safety-denylist.local
 .zshrc
 .hermes/
 .pi/

@@ -151,6 +151,9 @@ QT_QPA_PLATFORM=offscreen PYTHONPATH=src:tests .venv/bin/python scripts/run_test
 ```
 
 GitHub workflows are manual-only. Local verification is the default quality gate.
+For project-specific confidential names, add one literal phrase per line to the
+Git-ignored `.public-safety-denylist.local`; matches are reported without echoing
+the private text.
 
 ## AI-assisted development disclosure
 

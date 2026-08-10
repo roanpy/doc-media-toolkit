@@ -4,8 +4,9 @@ from __future__ import annotations
 import re
 import subprocess
 from pathlib import Path
+from typing import Sequence
 
-LOCAL_OR_SECRET_PATTERNS = [
+LOCAL_OR_SECRET_PATTERNS = tuple(
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
         r"/Users/[^\s'\"`]+",
@@ -20,7 +21,8 @@ LOCAL_OR_SECRET_PATTERNS = [
         r"WINDOWS_CERT_PASSWORD\s*=",
         r"AWS_SECRET_ACCESS_KEY\s*=",
     )
-]
+)
+PRIVATE_DENYLIST_NAME = ".public-safety-denylist.local"
 SELF_FILE = Path(__file__).resolve()
 
 TEXT_SUFFIXES = {
@@ -67,7 +69,23 @@ def is_text_file(path: Path) -> bool:
     return path.suffix.lower() in TEXT_SUFFIXES or path.name in {"LICENSE", "README"}
 
 
-def check_file_content(root: Path, path: Path) -> list[str]:
+def private_denylist_patterns(root: Path) -> tuple[re.Pattern[str], ...]:
+    path = root / PRIVATE_DENYLIST_NAME
+    if not path.is_file():
+        return ()
+    phrases = (
+        line.strip()
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    )
+    return tuple(re.compile(re.escape(phrase), re.IGNORECASE) for phrase in phrases)
+
+
+def check_file_content(
+    root: Path,
+    path: Path,
+    patterns: Sequence[re.Pattern[str]] = LOCAL_OR_SECRET_PATTERNS,
+) -> list[str]:
     if not path.is_file() or path.resolve() == SELF_FILE:
         return []
     if not is_text_file(path):
@@ -79,11 +97,9 @@ def check_file_content(root: Path, path: Path) -> list[str]:
 
     findings: list[str] = []
     rel = path.relative_to(root)
-    for pattern in LOCAL_OR_SECRET_PATTERNS:
-        for match in pattern.finditer(text):
-            findings.append(
-                f"{rel}: matched sensitive/local pattern `{match.group(0)}`"
-            )
+    for pattern in patterns:
+        if pattern.search(text):
+            findings.append(f"{rel}: matched sensitive/local pattern")
     return findings
 
 
@@ -99,9 +115,10 @@ def check_hard_links(root: Path, path: Path) -> list[str]:
 
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
+    patterns = (*LOCAL_OR_SECRET_PATTERNS, *private_denylist_patterns(root))
     findings: list[str] = []
     for path in public_files(root):
-        findings.extend(check_file_content(root, path))
+        findings.extend(check_file_content(root, path, patterns))
         findings.extend(check_hard_links(root, path))
 
     if findings:

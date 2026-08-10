@@ -73,6 +73,9 @@ ruff format --check src/ tests/ scripts/
 git diff --check
 ```
 
+项目专属的保密名称应逐行写入 Git 忽略的
+`.public-safety-denylist.local`。扫描器按普通文本匹配，且失败日志不会回显私有内容。
+
 视频资产库还必须通过：
 
 ```bash
