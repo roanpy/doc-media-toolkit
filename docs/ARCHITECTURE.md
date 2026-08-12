@@ -227,6 +227,10 @@ IMAGE_LIBRARY/
   放入 `licenses/`；缺少必需许可文本时失败关闭。具体分发边界见 `LICENSING.md`。
 - Office/WPS/LibreOffice/Keynote/Pages 是文档导出的可选外部引擎；标准轻量包不
   内置它们。完整 LibreOffice 仅由显式 onedir 构建启用。
+- Windows Office/WPS COM 转换在打开文档前强制禁用自动化宏；宏启用格式在引擎
+  无法确认该设置时拒绝打开。LibreOffice 始终通过参数数组启动，不经过命令壳层。
+- OOXML 关系目标先统一为 ZIP 的 POSIX 分隔符再解析；PDF 渲染和水印在分配位图或
+  平铺内容前执行页面尺寸与像素预算检查。
 - 发布构建固定使用 Python 3.12；开发/测试支持范围由 `pyproject.toml` 和 CI 矩阵
   共同定义。
 

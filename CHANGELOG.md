@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+
+- Normalize OOXML relationship separators before path validation, execute
+  LibreOffice with an argv list instead of a batch shell, and refuse macro-enabled
+  Office documents when a Windows COM engine cannot disable automation macros.
+- Bound PDF bitmap allocation and page dimensions before rendering or watermarking,
+  while retaining pypdf's decompression-bomb limit for array-based streams.
+
+### Fixed
+
+- Pin CI bootstrap tools and correct the local assistant setup and packaging commands.
+
 ## [0.2.2] - 2026-08-11
 
 ### Security

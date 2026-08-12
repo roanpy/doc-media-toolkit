@@ -14,6 +14,9 @@ import pikepdf
 from PIL import Image, UnidentifiedImageError
 from pypdf import PdfReader
 
+from pptx_output_watermark.pdf_io import validate_pdf_page_size
+from pptx_output_watermark.pdf_rendering import _bounded_render_scale
+
 from pptx_video_compactor import (
     ImageAsset,
     ImageOccurrence,
@@ -434,6 +437,8 @@ def _validate_structure(source: Path, output: Path) -> None:
 
 def _render_pages(pdf_path: Path, output_dir: Path, *, renderer: str) -> list[Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
+    for page in PdfReader(pdf_path, strict=False).pages:
+        validate_pdf_page_size(float(page.mediabox.width), float(page.mediabox.height))
     if renderer == "poppler":
         executable = shutil.which("pdftocairo")
         if not executable:
@@ -453,7 +458,16 @@ def _render_pages(pdf_path: Path, output_dir: Path, *, renderer: str) -> list[Pa
         document.init_forms()
         for index in range(len(document)):
             path = output_dir / f"page-{index + 1}.png"
-            document[index].render(scale=2).to_pil().save(path, format="PNG")
+            page = document[index]
+            width, height = page.get_size()
+            scale = _bounded_render_scale(
+                width,
+                height,
+                requested_scale=2.0,
+                max_edge=4096,
+                max_pixels=12_000_000,
+            )
+            page.render(scale=scale).to_pil().save(path, format="PNG")
             paths.append(path)
     finally:
         document.close()

@@ -163,6 +163,12 @@ class PackageTargetResolutionTest(unittest.TestCase):
         self.assertEqual(_resolve_zip_target(source, target), expected)
         self.assertEqual(resolve_zip_target(source, target), expected)
 
+    def test_backslash_targets_are_normalized_before_path_resolution(self) -> None:
+        self.assertEqual(
+            resolve_zip_target("word/document.xml", r"media\..\..\outside.txt"),
+            "outside.txt",
+        )
+
 
 class AtomicPptxOutputTest(unittest.TestCase):
     def test_build_output_replaces_media_and_can_replace_input_atomically(self) -> None:

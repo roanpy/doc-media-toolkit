@@ -12,14 +12,14 @@
 ## 验证路径（本地，无需 CI）
 
 ```bash
-bash setup_env.sh
+uv sync --locked --all-extras
 QT_QPA_PLATFORM=offscreen PYTHONPATH=src:tests .venv/bin/python scripts/run_tests_isolated.py
 .venv/bin/ruff check src tests scripts
 .venv/bin/ruff format --check src tests scripts
 .venv/bin/python scripts/check_public_safety.py
 ```
 
-打包验证（仅在维护者要求时）：`bash scripts/build_standalone.sh`，产物仅在 `dist/`，不入库。
+打包验证（仅在维护者要求时）：`.venv/bin/python scripts/build_standalone.py --help`，产物仅在 `dist/`，不入库。
 
 ## 提交与合并
 

@@ -1011,6 +1011,7 @@ def asset_priority_score(
 
 def resolve_zip_target(source_xml: str, target: str) -> str:
     base_dir = posixpath.dirname(source_xml)
+    target = target.replace("\\", "/")
     return posixpath.normpath(posixpath.join(base_dir, target)).lstrip("/")
 
 
