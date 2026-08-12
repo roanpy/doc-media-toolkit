@@ -19,6 +19,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - Pin CI bootstrap tools and correct the local assistant setup and packaging commands.
+- Fail before downloading or compiling FFmpeg when `pkg-config`/`pkgconf` is
+  unavailable, and pass the selected executable explicitly to FFmpeg configure.
+- Redact project, home, temporary, and runner paths from release-audit JSON and
+  Markdown so build-host details are not disclosed with release evidence.
 
 ## [0.2.2] - 2026-08-11
 
