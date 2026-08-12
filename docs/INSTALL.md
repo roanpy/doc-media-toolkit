@@ -25,8 +25,9 @@ publish the matching corresponding-source archive on the same Release. The older
 
 ## Install from source
 
-Python 3.12 is recommended. Git and the feature-specific external runtimes below
-must already be installed.
+Python 3.12, Git, and
+[uv](https://docs.astral.sh/uv/getting-started/installation/) must already be
+installed. Feature-specific external runtimes are listed below.
 
 macOS or Linux:
 
