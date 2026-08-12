@@ -34,12 +34,14 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import os
 import platform
 import re
 import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from subprocess import TimeoutExpired as SubprocessTimeoutExpired
@@ -52,6 +54,70 @@ if str(_SRC) not in sys.path:
 
 # Imported after sys.path mutation so the project version is resolvable.
 from pptx_tools import __version__ as PROJECT_VERSION  # noqa: E402
+
+
+def _redact_host_paths(text: str) -> str:
+    """Remove build-host roots from report text without hiding useful filenames."""
+    roots: list[tuple[str, str]] = []
+
+    def add(path_value: str | Path | None, replacement: str) -> None:
+        if not path_value:
+            return
+        path = Path(path_value).expanduser()
+        if not path.is_absolute() or path == Path(path.anchor):
+            return
+        for candidate in (str(path), str(path.resolve())):
+            roots.append((candidate, replacement))
+            if candidate.startswith("/private/"):
+                roots.append((candidate.removeprefix("/private"), replacement))
+
+    add(_PROJECT_ROOT, "<project-root>")
+    add(Path.home(), "<home>")
+    add(tempfile.gettempdir(), "<temp>")
+    if os.name != "nt":
+        add("/tmp", "<temp>")
+    for variable, replacement in (
+        ("GITHUB_WORKSPACE", "<project-root>"),
+        ("RUNNER_TEMP", "<temp>"),
+        ("RUNNER_TOOL_CACHE", "<runner-tool-cache>"),
+        ("USERPROFILE", "<home>"),
+        ("TMPDIR", "<temp>"),
+        ("TEMP", "<temp>"),
+        ("TMP", "<temp>"),
+    ):
+        add(os.environ.get(variable), replacement)
+
+    variants: dict[str, str] = {}
+    for value, replacement in roots:
+        for variant in {value, value.replace("\\", "/"), value.replace("/", "\\")}:
+            variants[variant] = replacement
+    for value, replacement in sorted(variants.items(), key=lambda item: -len(item[0])):
+        text = re.sub(
+            re.escape(value),
+            replacement,
+            text,
+            flags=re.IGNORECASE if os.name == "nt" else 0,
+        )
+    return text
+
+
+def _sanitize_report_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return _redact_host_paths(value)
+    if isinstance(value, dict):
+        return {key: _sanitize_report_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_report_value(item) for item in value]
+    return value
+
+
+def _portable_path_label(path: Path) -> str:
+    resolved = path.expanduser().resolve()
+    try:
+        relative = resolved.relative_to(_PROJECT_ROOT.resolve())
+    except ValueError:
+        return resolved.name or "<external>"
+    return relative.as_posix() or "."
 
 
 def _utc_now_iso() -> str:
@@ -229,11 +295,12 @@ def check_sbom(output_path: Path | None) -> dict[str, Any]:
         ]
     )
     ok = result["returncode"] == 0 and target.is_file()
+    target_label = _portable_path_label(target)
     return {
         "name": "CycloneDX SBOM",
         "status": "pass" if ok else "fail",
-        "detail": f"exit={result['returncode']}; target={target}",
-        "sbom_path": str(target) if target.is_file() else None,
+        "detail": f"exit={result['returncode']}; target={target_label}",
+        "sbom_path": target_label if target.is_file() else None,
         "stderr": result["stderr"].strip()[:2000] or None,
     }
 
@@ -252,12 +319,13 @@ def check_dist_artifacts(dist_dir: Path) -> dict[str, Any]:
                         "size_bytes": stat.st_size,
                     }
                 )
+    dist_label = _portable_path_label(dist_dir)
     return {
         "name": "packaged artifacts",
         "status": "pass" if files else "fail",
-        "detail": f"{len(files)} file(s) hashed under {dist_dir}",
+        "detail": f"{len(files)} file(s) hashed under {dist_label}",
         "project_version": PROJECT_VERSION,
-        "dist_dir": str(dist_dir),
+        "dist_dir": dist_label,
         "files": files,
     }
 
@@ -682,7 +750,7 @@ def run_all_checks(args_ns: argparse.Namespace) -> dict[str, Any]:
 
     statuses = {c["status"] for c in checks}
     overall = "pass" if not (statuses & {"fail", "vulns_found"}) else "fail"
-    return {
+    report = {
         "schema": "pptx-tools.release-audit",
         "generated_at": _utc_now_iso(),
         "overall_status": overall,
@@ -693,6 +761,7 @@ def run_all_checks(args_ns: argparse.Namespace) -> dict[str, Any]:
         ),
         "checks": checks,
     }
+    return _sanitize_report_value(report)
 
 
 def write_markdown(report: dict[str, Any], path: Path) -> None:
