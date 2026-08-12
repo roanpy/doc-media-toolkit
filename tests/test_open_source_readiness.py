@@ -49,6 +49,7 @@ class OpenSourceReadinessTest(unittest.TestCase):
             "docs/DEPENDENCIES.md",
             "docs/INSTALL.md",
             "docs/INSTALL.zh-CN.md",
+            "docs/releases/v0.2.3.md",
             "docs/releases/v0.2.2.md",
             "docs/releases/v0.2.1.md",
             "docs/releases/v0.2.0.md",
@@ -138,9 +139,27 @@ class OpenSourceReadinessTest(unittest.TestCase):
                         self.assertEqual(detector(), "en")
 
     def test_public_readmes_show_current_version(self) -> None:
-        self.assertEqual(__version__, "0.2.2")
+        self.assertEqual(__version__, "0.2.3")
         for name in ("README.md", "README.zh-CN.md"):
             self.assertIn(__version__, (ROOT / name).read_text(encoding="utf-8"))
+
+    def test_documented_setup_commands_exist(self) -> None:
+        documented = (
+            ROOT / "README.md",
+            ROOT / "README.zh-CN.md",
+            ROOT / "CONTRIBUTING.md",
+            ROOT / "docs" / "INSTALL.md",
+            ROOT / "docs" / "INSTALL.zh-CN.md",
+            ROOT / "docs" / "USER_GUIDE.zh-CN.md",
+            ROOT / "AGENTS.md",
+        )
+        for path in documented:
+            with self.subTest(path=path.name):
+                self.assertNotIn("setup_env.sh", path.read_text(encoding="utf-8"))
+                self.assertNotIn(
+                    'python -m pip install -e ".[dev,build]"',
+                    path.read_text(encoding="utf-8"),
+                )
 
     def test_private_public_safety_denylist_is_literal_and_not_echoed(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -172,6 +191,9 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertNotIn("gh release", workflow)
         self.assertNotIn("--windows-onefile", workflow)
         self.assertIn("uv export --locked --all-extras", workflow)
+        self.assertIn("pip install uv==0.12.3", workflow)
+        self.assertIn("pip install pip-audit==2.9.0", workflow)
+        self.assertNotIn("pip install --upgrade pip", workflow)
         self.assertIn("pip install --require-hashes", workflow)
         self.assertIn("- macos", workflow)
         self.assertIn("scripts/build_ffmpeg_runtime.sh", workflow)
@@ -179,6 +201,7 @@ class OpenSourceReadinessTest(unittest.TestCase):
 
         ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         self.assertIn("uv export --locked --extra dev", ci)
+        self.assertIn("pip install uv==0.12.3", ci)
         self.assertIn("pip install --require-hashes", ci)
 
     def test_github_actions_are_pinned_to_full_commit_shas(self) -> None:

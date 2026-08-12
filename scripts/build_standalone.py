@@ -50,7 +50,7 @@ def require_release_python(version_info: tuple[int, int] | None = None) -> None:
         actual = ".".join(map(str, current))
         raise SystemExit(
             f"Standalone releases require Python {expected}; found Python {actual}. "
-            "Run ./setup_env.sh and build with .venv/bin/python."
+            "Run `uv sync --locked --all-extras` and build with .venv/bin/python."
         )
 
 
@@ -770,7 +770,7 @@ def main() -> int:
     except ModuleNotFoundError as exc:
         raise SystemExit(
             "PyInstaller is not installed. Install build deps first: "
-            "python -m pip install -e '.[build]'"
+            "uv sync --locked --all-extras"
         ) from exc
     pyinstaller.run(pyinstaller_args)
 

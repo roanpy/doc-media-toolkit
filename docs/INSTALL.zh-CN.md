@@ -30,7 +30,7 @@ macOS 或 Linux：
 ```bash
 git clone https://github.com/roanpy/doc-media-toolkit.git
 cd doc-media-toolkit
-bash setup_env.sh
+uv sync --locked --all-extras
 .venv/bin/pptx-tools-gui
 ```
 
@@ -39,9 +39,8 @@ Windows PowerShell：
 ```powershell
 git clone https://github.com/roanpy/doc-media-toolkit.git
 cd doc-media-toolkit
-py -3.12 -m venv .venv
+uv sync --locked --all-extras --python 3.12
 .venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev,build]"
 pptx-tools-gui
 ```
 
