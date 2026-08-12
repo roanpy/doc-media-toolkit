@@ -145,6 +145,50 @@ class LocalReleaseToolsTest(unittest.TestCase):
             result["files"][0]["sha256"],
             "c7c5c1d70c5dec4416ab6158afd0b223ef40c29b1dc1f97ed9428b94d4cadb1c",
         )
+        self.assertNotIn(str(root.parent), json.dumps(result))
+
+    def test_release_report_redacts_build_host_paths(self) -> None:
+        private_path = Path.home() / ".cache" / "uv" / "build"
+        args = Namespace(
+            skip_pip_audit=True,
+            public_binary=False,
+            with_sbom=None,
+            skip_sbom=False,
+            dist_dir=Path(tempfile.gettempdir()) / "candidate",
+            evidence=None,
+        )
+        with (
+            patch.object(
+                release_audit,
+                "check_git_state",
+                return_value={"name": "git provenance", "status": "pass"},
+            ),
+            patch.object(
+                release_audit,
+                "check_uv_lock",
+                return_value={
+                    "name": "uv lock",
+                    "status": "pass",
+                    "detail": str(private_path),
+                },
+            ),
+            patch.object(
+                release_audit,
+                "check_dist_artifacts",
+                return_value={
+                    "name": "packaged artifacts",
+                    "status": "pass",
+                    "detail": str(args.dist_dir),
+                },
+            ),
+        ):
+            report = release_audit.run_all_checks(args)
+
+        serialized = json.dumps(report)
+        self.assertNotIn(str(Path.home()), serialized)
+        self.assertNotIn(str(Path(tempfile.gettempdir())), serialized)
+        self.assertIn("<home>", serialized)
+        self.assertIn("<temp>", serialized)
 
     def test_public_binary_gate_fails_closed_without_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
