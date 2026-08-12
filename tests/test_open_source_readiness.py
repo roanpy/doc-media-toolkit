@@ -228,6 +228,13 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertIn("--enable-mediafoundation", script)
         self.assertIn("--enable-d3d11va", script)
         self.assertIn("corresponding-source", script)
+        ffprobe_checksums = [
+            line
+            for line in script.splitlines()
+            if "sha256_file" in line and "bin/ffprobe$binary_suffix" in line
+        ]
+        self.assertEqual(len(ffprobe_checksums), 1)
+        self.assertIn("SHA256SUMS-FFMPEG.txt", script)
 
     def test_release_evidence_tools_are_fail_closed_and_documented(self) -> None:
         inventory = (ROOT / "scripts/generate_native_inventory.py").read_text(

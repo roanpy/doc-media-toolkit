@@ -72,10 +72,11 @@ Every image above is captured from the current source using anonymous synthetic 
 > The source release is available. Prebuilt macOS and Windows packages are currently
 > withheld as release candidates until signing and artifact-level license gates pass.
 
-Python 3.12 is recommended. The source environment installs the required Python
-packages; FFmpeg, Poppler, and office runtimes depend on the selected workflow and
-platform. See the [installation and platform guide](docs/INSTALL.md) for the tested
-matrix, external runtimes, safe upgrade steps, and package trust status.
+Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/) are
+required for the locked source setup. FFmpeg, Poppler, and office runtimes depend
+on the selected workflow and platform. See the [installation and platform
+guide](docs/INSTALL.md) for the tested matrix, external runtimes, safe upgrade
+steps, and package trust status.
 
 macOS / Linux:
 

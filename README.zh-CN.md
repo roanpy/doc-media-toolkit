@@ -72,9 +72,10 @@ Doc Media Toolkit 面向这类文档媒体工作流：
 > 源码版本可以使用。macOS 和 Windows 预构建包目前作为候选产物保留，签名及产物级
 > 许可门禁通过前不公开。
 
-推荐使用 Python 3.12。源码环境会安装所需 Python 包；FFmpeg、Poppler 和办公软件
-运行时按所用功能与平台选择。已验证平台、外部运行时、升级备份和安装包可信状态见
-[安装与平台支持](docs/INSTALL.zh-CN.md)。
+锁定源码环境需要 Python 3.12 和
+[uv](https://docs.astral.sh/uv/getting-started/installation/)；FFmpeg、Poppler 和
+办公软件运行时按所用功能与平台选择。已验证平台、外部运行时、升级备份和安装包
+可信状态见[安装与平台支持](docs/INSTALL.zh-CN.md)。
 
 macOS / Linux：
 

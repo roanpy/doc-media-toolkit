@@ -23,7 +23,9 @@
 
 ## 从源码安装
 
-推荐 Python 3.12。Git 以及下方按功能列出的外部运行时需要预先安装。
+需要预先安装 Python 3.12、Git 和
+[uv](https://docs.astral.sh/uv/getting-started/installation/)；按功能使用的外部
+运行时见下文。
 
 macOS 或 Linux：
 
