@@ -15,7 +15,7 @@ from reportlab.lib.utils import ImageReader
 
 from .font_assets import bundled_watermark_font_candidates
 from .models import DEFAULT_WATERMARK_TEXT, WatermarkOptions
-from .pdf_io import open_pdf_reader
+from .pdf_io import open_pdf_reader, validate_pdf_page_size
 from .watermarking import apply_image_opacity, parse_hex_color, render_rotation_angle
 
 
@@ -177,6 +177,7 @@ def apply_watermark_to_pdf(
     for page in reader.pages:
         width = float(page.mediabox.width)
         height = float(page.mediabox.height)
+        validate_pdf_page_size(width, height)
         overlay_reader = open_pdf_reader(
             io.BytesIO(
                 _build_watermark_pdf_bytes(width=width, height=height, options=options)

@@ -33,6 +33,7 @@ COM_EXCEL_PDF_ENGINES: tuple[tuple[str, str], ...] = (
     ("Microsoft Excel", "Excel.Application"),
     ("WPS Office", "KET.Application"),
 )
+MACRO_ENABLED_EXTENSIONS = {".docm", ".xlsm", ".pptm"}
 
 
 def _log(logger: Logger | None, message: str) -> None:
@@ -368,6 +369,15 @@ def _convert_via_com_app_with_detail(
             app = comtypes.client.CreateObject(app_id)
             if app is None:
                 return False, "COM CreateObject returned None"
+            try:
+                app.AutomationSecurity = 3  # msoAutomationSecurityForceDisable
+            except Exception as exc:
+                if input_pptx.suffix.lower() in MACRO_ENABLED_EXTENSIONS:
+                    return (
+                        False,
+                        "Refusing to open a macro-enabled document because the "
+                        f"COM engine could not disable macros: {type(exc).__name__}",
+                    )
             if is_excel:
                 presentation, open_detail = _open_excel_com_workbook(app, input_pptx)
             elif is_word:

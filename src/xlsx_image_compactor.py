@@ -13,6 +13,7 @@ from PIL import Image, UnidentifiedImageError
 from pypdf import PdfReader
 
 from pptx_output_watermark.presentation_rendering import convert_document_to_pdf
+from pptx_output_watermark.pdf_rendering import _bounded_render_scale
 from pptx_video_compactor import (
     ImageAsset,
     ImageOccurrence,
@@ -207,7 +208,16 @@ def _render_pdf_pages(pdf_path: Path, output_dir: Path) -> list[Path]:
     try:
         for index in range(len(document)):
             path = output_dir / f"page-{index + 1}.png"
-            document[index].render(scale=1.5).to_pil().save(path, format="PNG")
+            page = document[index]
+            width, height = page.get_size()
+            scale = _bounded_render_scale(
+                width,
+                height,
+                requested_scale=1.5,
+                max_edge=4096,
+                max_pixels=12_000_000,
+            )
+            page.render(scale=scale).to_pil().save(path, format="PNG")
             paths.append(path)
     finally:
         document.close()

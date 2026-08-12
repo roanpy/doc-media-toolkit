@@ -243,44 +243,14 @@ def run_convert_command(
             **subprocess_text_kwargs(),
         )
 
-    bat_dir = (
-        Path(profile_dir) if profile_dir else Path(tempfile.mkdtemp(prefix="lo_bat_"))
+    return run_process(
+        direct_cmd,
+        capture_output=True,
+        timeout=max(10, int(timeout_seconds)),
+        env=subprocess_env(profile_dir),
+        **subprocess_text_kwargs(),
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
     )
-    bat_path = bat_dir / "run_lo.bat"
-
-    # Force minimal pristine environment inside the BAT script
-    sys_root = os.environ.get("SystemRoot", r"C:\Windows")
-    bat_lines = [
-        "@echo off",
-        f"set PATH={sys_root}\\System32;{sys_root}\\System32\\Wbem;{sys_root}\\System32\\WindowsPowerShell\\v1.0",
-        "set QT_PLUGIN_PATH=",
-        "set QT_QPA_PLATFORM_PLUGIN_PATH=",
-    ]
-    if profile_dir:
-        bat_lines.append(f"set UserInstallation=file:///{Path(profile_dir).as_posix()}")
-
-    # Quote arguments properly
-    cmd_str = f'"{direct_cmd[0]}" ' + " ".join(
-        f'"{a}"' if " " in str(a) or "&" in str(a) else str(a) for a in direct_cmd[1:]
-    )
-    bat_lines.append(cmd_str)
-
-    bat_encoding = "mbcs" if sys.platform == "win32" else "utf-8"
-    bat_path.write_text("\n".join(bat_lines), encoding=bat_encoding)
-
-    try:
-        return run_process(
-            [str(bat_path)],
-            capture_output=True,
-            timeout=max(10, int(timeout_seconds)),
-            # Use default environment, the BAT file will scrub it
-            env=None,
-            **subprocess_text_kwargs(),
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-        )
-    finally:
-        if not profile_dir:
-            shutil.rmtree(bat_dir, ignore_errors=True)
 
 
 def convert_file_to_dir(

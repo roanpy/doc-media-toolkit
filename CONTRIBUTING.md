@@ -17,7 +17,7 @@ Thank you for improving Doc Media Toolkit. Issues and pull requests may be writt
 ## Development / 开发
 
 ```bash
-bash setup_env.sh
+uv sync --locked --all-extras
 QT_QPA_PLATFORM=offscreen PYTHONPATH=src:tests .venv/bin/python scripts/run_tests_isolated.py
 .venv/bin/ruff check src tests scripts
 .venv/bin/python scripts/check_public_safety.py

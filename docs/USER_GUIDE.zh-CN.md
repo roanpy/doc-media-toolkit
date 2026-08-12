@@ -43,10 +43,11 @@
 ## 开发环境
 
 ```bash
-bash setup_env.sh
+uv sync --locked --all-extras
 ```
 
-这会创建 `.venv`，安装项目的开发、测试和打包依赖，并检查 `ffmpeg` / `ffprobe` 是否在 PATH 中。
+这会创建 `.venv` 并按 `uv.lock` 安装开发、测试和打包依赖。视频相关功能还需要
+`ffmpeg` / `ffprobe`；源码运行时会从显式配置或 PATH 中解析它们。
 独立安装包固定使用 Python 3.12；脚本会拒绝误用系统 Python 3.14，
 避免把未经验证的运行时打入发布包。
 

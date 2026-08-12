@@ -40,5 +40,6 @@ benchmark-results/
 benchmark-self-check.*
 release-audit.*
 release-assets/
+requirements.locked.txt
 design-prototype/node_modules/
 design-prototype/dist/
