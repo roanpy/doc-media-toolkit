@@ -22,6 +22,11 @@ Recommended candidate package names:
 
 ## Build Commands
 
+The source-pinned FFmpeg build requires a C toolchain, `make`, `curl`, `tar`, and
+`pkg-config` or compatible `pkgconf`. On macOS, install the same prerequisites as
+the candidate workflow with `brew install nasm pkgconf`; on Windows use the
+MSYS2 packages listed in `.github/workflows/release.yml`.
+
 macOS GUI:
 
 ```bash

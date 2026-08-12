@@ -8,6 +8,12 @@ X264_SHA256="6eeb82934e69fd51e043bd8c5b0d152839638d1ce7aa4eea65a3fedcf83ff224"
 ZLIB_VERSION="1.3.2"
 ZLIB_SHA256="d7a0654783a4da529d1bb793b7ad9c3318020af77667bcae35f95d0e42a792f3"
 
+pkg_config="$(command -v pkg-config || command -v pkgconf || true)"
+if [[ -z "$pkg_config" ]]; then
+  echo "pkg-config or pkgconf is required to build the source-pinned FFmpeg runtime." >&2
+  exit 1
+fi
+
 if [[ $# -ne 1 ]]; then
   echo "usage: $0 OUTPUT_DIR" >&2
   exit 2
@@ -128,7 +134,9 @@ ffmpeg_args=(
 )
 
 pushd "$work_dir/ffmpeg-${FFMPEG_VERSION}" >/dev/null
-PKG_CONFIG_PATH="$prefix/lib/pkgconfig" ./configure "${ffmpeg_args[@]}"
+PKG_CONFIG_PATH="$prefix/lib/pkgconfig" ./configure \
+  --pkg-config="$pkg_config" \
+  "${ffmpeg_args[@]}"
 make -j"$jobs"
 make install
 popd >/dev/null
