@@ -147,7 +147,7 @@ on each build host before producing a release artifact.
 
 ```bash
 python scripts/release_audit.py --check
-uv run --with pip-audit python scripts/release_audit.py --check
+uv run --isolated --with pip-audit==2.9.0 python scripts/release_audit.py --check
 python scripts/release_audit.py --check --with-sbom dist/sbom.json
 python scripts/release_audit.py --check --public-binary \
   --dist-dir release-assets \
@@ -160,8 +160,12 @@ python scripts/release_audit.py --check --public-binary \
 - Git branch/commit provenance and a clean working-tree requirement before release.
 - `uv lock --check` and `uv sync --locked --dry-run` (lockfile integrity).
 - `pip-audit` as an **external, opt-in tool**: if absent it is reported as a
-  skipped step and is never added as a runtime dependency. Use the shown
-  `uv run --with pip-audit ...` form when a vulnerability scan is required.
+  skipped step and is never added as a runtime dependency. When present, the
+  audit exports all extras from `uv.lock` with hashes and scans that file with
+  dependency resolution disabled; it does not audit whichever packages happen
+  to be installed in the active environment. Run it on every target platform so
+  environment markers select the matching macOS or Windows graph. Use the shown
+  isolated, version-pinned command when a vulnerability scan is required.
 - Optional CycloneDX SBOM via `uv export --format cyclonedx1.5` when explicitly requested
   with `--with-sbom`.
 - Packaged binary version (from `pptx_tools.__version__`) plus SHA-256 hashes for

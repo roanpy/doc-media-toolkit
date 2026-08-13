@@ -199,31 +199,82 @@ def check_uv_lock() -> dict[str, Any]:
 
 
 def check_pip_audit() -> dict[str, Any]:
-    """Run pip-audit if present; never install it as a dependency."""
+    """Audit dependencies exported from uv.lock, not the active environment."""
     executable = shutil.which("pip-audit")
     if executable is not None:
-        command = [executable, "--local", "--desc"]
+        command = [executable]
     elif importlib.util.find_spec("pip_audit") is not None:
-        command = [sys.executable, "-m", "pip_audit", "--local", "--desc"]
+        command = [sys.executable, "-m", "pip_audit"]
     else:
         return {
             "name": "pip-audit",
             "status": "skipped",
             "detail": (
                 "pip-audit not found in PATH. It is an external, opt-in tool: "
-                "run `uv run --with pip-audit python scripts/release_audit.py "
-                "--check` to audit the locked project environment."
+                "run `uv run --isolated --with pip-audit==2.9.0 python "
+                "scripts/release_audit.py --check` to audit the locked project environment."
             ),
         }
-    result = _run(command, timeout=600)
+    uv = shutil.which("uv")
+    if uv is None:
+        return {
+            "name": "pip-audit",
+            "status": "fail",
+            "detail": "uv not found; cannot export the locked dependency graph.",
+        }
+    with tempfile.TemporaryDirectory(prefix="doc-media-pip-audit-") as temp_dir:
+        requirements = Path(temp_dir) / "requirements.locked.txt"
+        export = _run(
+            [
+                uv,
+                "export",
+                "--locked",
+                "--all-extras",
+                "--no-emit-project",
+                "--format",
+                "requirements.txt",
+                "--output-file",
+                str(requirements),
+            ]
+        )
+        if (
+            export["returncode"] != 0
+            or not requirements.is_file()
+            or requirements.stat().st_size == 0
+        ):
+            return {
+                "name": "pip-audit",
+                "status": "fail",
+                "detail": f"locked dependency export failed (exit={export['returncode']}).",
+                "stderr": export["stderr"].strip()[:2000] or None,
+            }
+        result = _run(
+            [
+                *command,
+                "--requirement",
+                str(requirements),
+                "--require-hashes",
+                "--disable-pip",
+                "--strict",
+                "--desc",
+            ],
+            timeout=600,
+        )
     # pip-audit returns non-zero when vulnerabilities are found.
     vulns = result["stdout"]
-    status = "pass" if result["returncode"] == 0 else "vulns_found"
+    status = (
+        "pass"
+        if result["returncode"] == 0
+        else "vulns_found"
+        if result["returncode"] == 1
+        else "fail"
+    )
     return {
         "name": "pip-audit",
         "status": status,
-        "detail": f"exit={result['returncode']}",
+        "detail": f"uv.lock export; exit={result['returncode']}",
         "output": vulns.strip()[:4000] or None,
+        "stderr": result["stderr"].strip()[:2000] or None,
     }
 
 

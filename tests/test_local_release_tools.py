@@ -190,6 +190,34 @@ class LocalReleaseToolsTest(unittest.TestCase):
         self.assertIn("<home>", serialized)
         self.assertIn("<temp>", serialized)
 
+    def test_pip_audit_scans_hashed_dependencies_exported_from_uv_lock(self) -> None:
+        commands: list[list[str]] = []
+
+        def fake_which(name: str) -> str | None:
+            return f"/tools/{name}" if name in {"pip-audit", "uv"} else None
+
+        def fake_run(command: list[str], **_kwargs: object) -> dict[str, object]:
+            commands.append(command)
+            if command[0].endswith("uv"):
+                output = Path(command[command.index("--output-file") + 1])
+                output.write_text("example==1 --hash=sha256:abc\n", encoding="utf-8")
+            return {"returncode": 0, "stdout": "", "stderr": ""}
+
+        with (
+            patch.object(release_audit.shutil, "which", side_effect=fake_which),
+            patch.object(release_audit, "_run", side_effect=fake_run),
+        ):
+            result = release_audit.check_pip_audit()
+
+        self.assertEqual(result["status"], "pass")
+        self.assertIn("uv.lock", result["detail"])
+        self.assertIn("--locked", commands[0])
+        self.assertIn("--all-extras", commands[0])
+        self.assertIn("--require-hashes", commands[1])
+        self.assertIn("--disable-pip", commands[1])
+        self.assertIn("--strict", commands[1])
+        self.assertNotIn("--local", commands[1])
+
     def test_public_binary_gate_fails_closed_without_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             result = release_audit.check_public_binary_evidence(None, Path(temp_dir))

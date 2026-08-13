@@ -312,7 +312,7 @@ PPTX_TOOLS_WPS / PPTX_TOOLS_WPP
 
 除远程 workflow 外，提供不依赖 GitHub Actions 的本地入口，在每台构建主机上手动运行：
 
-- `python scripts/release_audit.py --check`：检查 Git 提交溯源/干净工作树、`uv lock --check` / locked sync、可选 `pip-audit`（外部工具，缺失时降级）、可选 CycloneDX SBOM、`dist/` 产物版本/哈希。详见 `docs/RELEASE.md`。
+- `python scripts/release_audit.py --check`：检查 Git 提交溯源/干净工作树、`uv lock --check` / locked sync、可选 `pip-audit`（外部工具；从 `uv.lock` 导出当前平台全部 extra 的带哈希依赖后扫描，缺失时降级）、可选 CycloneDX SBOM、`dist/` 产物版本/哈希。详见 `docs/RELEASE.md`。
 - `python scripts/run_compression_benchmark.py --manifest ...`：以 manifest 驱动复现智能目标容量压缩，输出目标容量误差、实际容量、质量/结构结果、纠偏轮数、耗时与 CPU/GPU/回退信息。语料不进 Git，契约见 `docs/COMPRESSION_BENCHMARK.md`。
 
 跨平台产物必须在对应平台构建；macOS 默认 ad-hoc 签名，Developer ID 公证需单独配置；Windows 签名需在 Windows 主机完成，本地审计只记录哈希。

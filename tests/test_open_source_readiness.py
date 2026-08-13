@@ -13,7 +13,13 @@ from pptx_tools import __version__
 from pptx_tools.gui import detect_language as detect_shell_language
 from pptx_tools.gui import help_topics
 from pptx_video_compactor_gui import detect_language as detect_compactor_language
-from scripts.check_public_safety import check_file_content, private_denylist_patterns
+from scripts.check_public_safety import (
+    check_file_content,
+    check_sensitive_path,
+    check_symbolic_link,
+    private_denylist_patterns,
+    public_files,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -75,6 +81,7 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertIn("github.com/roanpy/doc-media-toolkit", metadata)
         self.assertNotIn("github.com/roanpy/pptx-tools", metadata)
         self.assertIn('{ file = "src/pptx_tools/__init__.py" }', metadata)
+        self.assertEqual(metadata.count('"setuptools>=77.0.3"'), 2)
 
     def test_help_discloses_language_and_open_source_scope(self) -> None:
         self.assertIn("开源、语言与隐私", help_topics("zh"))
@@ -174,6 +181,74 @@ class OpenSourceReadinessTest(unittest.TestCase):
 
             self.assertEqual(findings, ["sample.txt: matched sensitive/local pattern"])
             self.assertNotIn("Project", findings[0])
+
+    def test_public_safety_checks_extensionless_text_names_and_links(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            extensionless = root / "credentials"
+            extensionless.write_text(
+                "/".join(("", "Users", "example", "private")), encoding="utf-8"
+            )
+            sensitive = root / ".env.production"
+            sensitive.write_text("placeholder", encoding="utf-8")
+            local_agent_config = root / ".codex" / "settings.json"
+            invalid_text = root / "invalid.txt"
+            invalid_text.write_bytes(b"\xff")
+            linked = root / "linked"
+
+            self.assertEqual(
+                check_file_content(root, extensionless),
+                ["credentials: matched sensitive/local pattern"],
+            )
+            self.assertEqual(
+                check_sensitive_path(root, sensitive),
+                [".env.production: sensitive file name or directory"],
+            )
+            self.assertEqual(
+                check_sensitive_path(root, local_agent_config),
+                [".codex/settings.json: sensitive file name or directory"],
+            )
+            self.assertEqual(
+                check_file_content(root, invalid_text),
+                ["invalid.txt: declared text file is not valid UTF-8"],
+            )
+            with patch.object(Path, "is_symlink", return_value=True):
+                self.assertEqual(
+                    check_symbolic_link(root, linked),
+                    ["linked: symbolic links are not allowed"],
+                )
+
+    def test_public_safety_parses_nul_delimited_git_paths(self) -> None:
+        completed = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout=b"normal.txt\0line\nbreak.txt\0", stderr=b""
+        )
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            patch(
+                "scripts.check_public_safety.subprocess.run", return_value=completed
+            ) as run,
+        ):
+            root = Path(temp_dir)
+            paths = public_files(root)
+
+        self.assertEqual(
+            [path.relative_to(root).as_posix() for path in paths],
+            ["normal.txt", "line\nbreak.txt"],
+        )
+        self.assertIn("-z", run.call_args.args[0])
+
+    def test_public_safety_fallback_keeps_broken_links(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            linked = root / "broken-link"
+            linked.symlink_to(root / "missing")
+            with patch(
+                "scripts.check_public_safety.subprocess.run",
+                side_effect=FileNotFoundError,
+            ):
+                paths = public_files(root)
+
+        self.assertEqual(paths, [linked])
 
     def test_source_distribution_includes_document_fixtures(self) -> None:
         manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8")
