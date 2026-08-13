@@ -127,7 +127,7 @@ requires-dist = [
     { name = "python-pptx", specifier = ">=1.0.2" },
     { name = "reportlab", specifier = ">=4.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12" },
-    { name = "setuptools", marker = "extra == 'dev'", specifier = ">=68" },
+    { name = "setuptools", marker = "extra == 'dev'", specifier = ">=77.0.3" },
 ]
 provides-extras = ["build", "dev"]
 

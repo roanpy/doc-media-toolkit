@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -43,7 +43,7 @@ dependencies = [
 
 [project.optional-dependencies]
 build = ["PyInstaller>=6.0"]
-dev = ["ruff>=0.12", "setuptools>=68"]
+dev = ["ruff>=0.12", "setuptools>=77.0.3"]
 
 [project.scripts]
 pptx-tools = "pptx_tools.cli:main"

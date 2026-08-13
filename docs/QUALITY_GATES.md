@@ -75,6 +75,8 @@ git diff --check
 
 项目专属的保密名称应逐行写入 Git 忽略的
 `.public-safety-denylist.local`。扫描器按普通文本匹配，且失败日志不会回显私有内容。
+扫描同时拒绝敏感凭据文件名、被跟踪符号链接/硬链接和超过安全扫描上限的文本文件；
+无扩展名的 UTF-8 文本也会检查，Git 文件列表使用 NUL 分隔，避免特殊文件名绕过。
 
 视频资产库还必须通过：
 
@@ -94,11 +96,12 @@ pptx-tools images doctor IMAGE_LIBRARY --verify-hashes
 
 ```bash
 python scripts/release_audit.py --check
-uv run --with pip-audit python scripts/release_audit.py --check
+uv run --isolated --with pip-audit==2.9.0 python scripts/release_audit.py --check
 ```
 
 该入口覆盖 Git 分支/提交溯源与干净工作树检查、`uv lock --check` /
-`uv sync --locked --dry-run`、可选 `pip-audit`
+`uv sync --locked --dry-run`、可选 `pip-audit`（从 `uv.lock` 导出全部 extra 的带哈希
+requirements，并禁用再次解析依赖）
 （外部工具，缺失时降级为提示，不加入运行时依赖）、可选的 uv CycloneDX SBOM 与
 `dist/` 产物版本/哈希。详细字段与边界见 `docs/RELEASE.md`。
 公开二进制必须额外使用 `--public-binary --with-sbom ... --evidence ...`；缺少

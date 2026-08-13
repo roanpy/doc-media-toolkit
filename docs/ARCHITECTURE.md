@@ -245,7 +245,8 @@ IMAGE_LIBRARY/
 平台构建，不能把 macOS 本地验证当作 Windows 可运行证据。
 
 `scripts/release_audit.py` 是不依赖远程 CI 的本地发布前审计入口，覆盖 Git 分支/提交
-溯源与干净工作树、`uv lock --check`、可选 `pip-audit`（外部工具）、可选 uv
+溯源与干净工作树、`uv lock --check`、可选 `pip-audit`（外部工具，从 `uv.lock`
+导出当前目标平台全部 extra 的带哈希 requirements 后禁用再次解析）、可选 uv
 CycloneDX SBOM 与 `dist/` 产物版本/哈希。`scripts/generate_native_inventory.py` 对
 目标平台解包后的 onedir/`.app` 记录相对原生文件路径、SHA-256、架构和依赖工具输出；
 `scripts/scan_release_artifact.py` 调用 ClamAV 或 Windows Defender 生成绑定产物哈希的
