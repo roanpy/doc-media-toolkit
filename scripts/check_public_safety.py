@@ -150,12 +150,16 @@ def check_sensitive_path(root: Path, path: Path) -> list[str]:
         or path.suffix.lower() in SENSITIVE_SUFFIXES
         or any(part.lower() in SENSITIVE_PARTS for part in relative.parts[:-1])
     )
-    return [f"{relative}: sensitive file name or directory"] if sensitive else []
+    return (
+        [f"{relative.as_posix()}: sensitive file name or directory"]
+        if sensitive
+        else []
+    )
 
 
 def check_symbolic_link(root: Path, path: Path) -> list[str]:
     return (
-        [f"{path.relative_to(root)}: symbolic links are not allowed"]
+        [f"{path.relative_to(root).as_posix()}: symbolic links are not allowed"]
         if path.is_symlink()
         else []
     )
@@ -184,12 +188,16 @@ def check_file_content(
         return []
     try:
         if path.stat().st_size > MAX_TEXT_BYTES:
-            return [f"{path.relative_to(root)}: text file exceeds safety scan limit"]
+            return [
+                f"{path.relative_to(root).as_posix()}: text file exceeds safety scan limit"
+            ]
         text = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
-        return [f"{path.relative_to(root)}: declared text file is not valid UTF-8"]
+        return [
+            f"{path.relative_to(root).as_posix()}: declared text file is not valid UTF-8"
+        ]
     except OSError:
-        return [f"{path.relative_to(root)}: file could not be read safely"]
+        return [f"{path.relative_to(root).as_posix()}: file could not be read safely"]
 
     findings: list[str] = []
     rel = path.relative_to(root)
@@ -208,7 +216,7 @@ def check_hard_links(root: Path, path: Path) -> list[str]:
         return []
     if not path.is_file() or stat.st_nlink <= 1:
         return []
-    return [f"{path.relative_to(root)}: hard-link count is {stat.st_nlink}"]
+    return [f"{path.relative_to(root).as_posix()}: hard-link count is {stat.st_nlink}"]
 
 
 def main() -> int:
