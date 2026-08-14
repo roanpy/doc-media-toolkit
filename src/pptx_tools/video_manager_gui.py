@@ -65,6 +65,7 @@ from PySide6.QtWidgets import (
 )
 
 from pptx_output_watermark.process_utils import terminate_active_processes
+from pptx_tools.manager_i18n import tr
 from pptx_tools.app_logging import configure_app_logging, log_directory
 from pptx_tools.media_manager_ui import MEDIA_MANAGER_STYLESHEET, OperationWorker
 from pptx_tools.ui_theme import (
@@ -224,7 +225,7 @@ def _set_video_thumbnail(
                 )
             )
         return
-    message = "无法生成封面，可点击“播放”核对完整视频"
+    message = tr("无法生成封面，可点击“播放”核对完整视频")
     if isinstance(label, ResponsiveVideoThumbnail):
         label.clear_source(message)
     else:
@@ -244,7 +245,7 @@ class VideoMatchDialog(QDialog):
         allow_remember: bool,
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("确认视频匹配")
+        self.setWindowTitle(tr("确认视频匹配"))
         self.setMinimumSize(760, 500)
         self.resize(920, 600)
         self.setStyleSheet(MEDIA_MANAGER_STYLESHEET)
@@ -257,12 +258,12 @@ class VideoMatchDialog(QDialog):
         layout.setSpacing(12)
         source = Path(item["source"])
         metadata = item.get("metadata") or {}
-        title = QLabel("确认视频匹配")
+        title = QLabel(tr("确认视频匹配"))
         title.setObjectName("dialogTitle")
         layout.addWidget(title)
         subtitle = QLabel(
-            f"待处理：{source.name}  ·  "
-            f"{int(metadata.get('width') or 0)}×{int(metadata.get('height') or 0)}  ·  "
+            f"{tr('待处理：')}{source.name}{tr('  ·  ')}" +
+            f"{int(metadata.get('width') or 0)}×{int(metadata.get('height') or 0)}{tr('  ·  ')}" +
             f"{_format_duration(float(metadata.get('duration_sec') or 0))}"
         )
         subtitle.setObjectName("dialogSubtitle")
@@ -273,10 +274,10 @@ class VideoMatchDialog(QDialog):
         previews.setSpacing(14)
         source_panel = QVBoxLayout()
         source_panel.setSpacing(6)
-        source_heading = QLabel("待核对视频  ·  10% / 50% / 90% 取帧")
+        source_heading = QLabel(tr("待核对视频  ·  10% / 50% / 90% 取帧"))
         source_heading.setObjectName("previewHeading")
-        self.source_preview = self._preview_label("待匹配视频")
-        source_play = QPushButton("播放待匹配视频")
+        self.source_preview = self._preview_label(tr("待匹配视频"))
+        source_play = QPushButton(tr("播放待匹配视频"))
         source_play.clicked.connect(lambda: self._open_video(source))
         source_panel.addWidget(source_heading)
         source_panel.addWidget(self.source_preview, 1)
@@ -284,10 +285,10 @@ class VideoMatchDialog(QDialog):
 
         candidate_panel = QVBoxLayout()
         candidate_panel.setSpacing(6)
-        candidate_heading = QLabel("候选高清源  ·  选择下方视频族后显示")
+        candidate_heading = QLabel(tr("候选高清源  ·  选择下方视频族后显示"))
         candidate_heading.setObjectName("previewHeading")
-        self.candidate_preview = self._preview_label("选择下方候选")
-        self.candidate_play = QPushButton("播放候选高清源")
+        self.candidate_preview = self._preview_label(tr("选择下方候选"))
+        self.candidate_play = QPushButton(tr("播放候选高清源"))
         self.candidate_play.setEnabled(False)
         self.candidate_play.clicked.connect(self._open_selected_candidate)
         candidate_panel.addWidget(candidate_heading)
@@ -304,7 +305,7 @@ class VideoMatchDialog(QDialog):
 
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(
-            ["候选视频族", "相似度", "分辨率", "时长", "画面差异", "音频", "判断"]
+            [tr("候选视频族"), tr("相似度"), tr("分辨率"), tr("时长"), tr("画面差异"), tr("音频"), tr("判断")]
         )
         self.tree.setColumnWidth(0, 280)
         self.tree.setColumnWidth(1, 70)
@@ -328,8 +329,8 @@ class VideoMatchDialog(QDialog):
                         if confidence.get("frame_total_distance") is not None
                         else "—"
                     ),
-                    "一致" if confidence.get("audio_consistent") else "不同/未知",
-                    "严格匹配" if candidate.get("strict_match") else "人工核对",
+                    tr("一致") if confidence.get("audio_consistent") else tr("不同/未知"),
+                    tr("严格匹配") if candidate.get("strict_match") else tr("人工核对"),
                 ]
             )
             row.setData(0, Qt.ItemDataRole.UserRole, candidate)
@@ -337,23 +338,23 @@ class VideoMatchDialog(QDialog):
         if self.tree.topLevelItemCount():
             self.tree.setCurrentItem(self.tree.topLevelItem(0))
 
-        self.remember_checkbox = QCheckBox("记住此关联，后续同一压缩版本自动匹配")
+        self.remember_checkbox = QCheckBox(tr("记住此关联，后续同一压缩版本自动匹配"))
         self.remember_checkbox.setChecked(True)
         self.remember_checkbox.setVisible(allow_remember)
         layout.addWidget(self.remember_checkbox)
 
         buttons = QDialogButtonBox()
         self.link_button = buttons.addButton(
-            "关联并继续", QDialogButtonBox.ButtonRole.AcceptRole
+            tr("关联并继续"), QDialogButtonBox.ButtonRole.AcceptRole
         )
         self.link_button.setObjectName("primaryAction")
         self.link_button.setEnabled(self.tree.topLevelItemCount() > 0)
         if allow_new_family:
             new_button = buttons.addButton(
-                "新建视频族", QDialogButtonBox.ButtonRole.ActionRole
+                tr("新建视频族"), QDialogButtonBox.ButtonRole.ActionRole
             )
             new_button.clicked.connect(self._choose_new_family)
-        skip_button = buttons.addButton("跳过", QDialogButtonBox.ButtonRole.RejectRole)
+        skip_button = buttons.addButton(tr("跳过"), QDialogButtonBox.ButtonRole.RejectRole)
         self.link_button.clicked.connect(self.accept)
         skip_button.clicked.connect(self.reject)
         layout.addWidget(buttons)
@@ -397,7 +398,7 @@ class VideoMatchDialog(QDialog):
 
     def _open_video(self, path: Path) -> None:
         if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(path))):
-            QMessageBox.warning(self, "确认视频匹配", f"无法打开视频：{path.name}")
+            QMessageBox.warning(self, tr("确认视频匹配"), f"{tr('无法打开视频：')}{path.name}")
 
     def _choose_new_family(self) -> None:
         self.create_new_family = True
@@ -419,7 +420,7 @@ class PptxUpgradeReviewDialog(QDialog):
         families: list[dict[str, Any]],
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("确认 PPTX 高清回填")
+        self.setWindowTitle(tr("确认 PPTX 高清回填"))
         self.setMinimumSize(1080, 620)
         self.resize(1220, 720)
         self.source_pptx = source_pptx
@@ -432,12 +433,12 @@ class PptxUpgradeReviewDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(12)
-        title = QLabel("确认 PPTX 高清回填")
+        title = QLabel(tr("确认 PPTX 高清回填"))
         title.setObjectName("dialogTitle")
         layout.addWidget(title)
         intro = QLabel(
-            f"{source_pptx.name} · {len(items)} 个内嵌视频。"
-            "系统只给出建议；确认后另存新 PPTX，不覆盖原文件。"
+            f"{source_pptx.name}{tr(' · ')}{len(items)}{tr(' 个内嵌视频。')}" +
+            tr("系统只给出建议；确认后另存新 PPTX，不覆盖原文件。")
         )
         intro.setObjectName("dialogSubtitle")
         intro.setWordWrap(True)
@@ -448,9 +449,9 @@ class PptxUpgradeReviewDialog(QDialog):
             for kind in ("exact", "content", "unmatched")
         }
         summary = QLabel(
-            f"精确匹配 {counts['exact']} · 内容匹配 {counts['content']} · "
-            f"需人工确认 {counts['unmatched']}。"
-            "“仅本次替换”不会把不同视频误记为同一族。"
+            f"{tr('精确匹配 ')}{counts['exact']}{tr(' · 内容匹配 ')}{counts['content']}{tr(' · ')}" +
+            f"{tr('需人工确认 ')}{counts['unmatched']}{tr('。')}" +
+            tr("“仅本次替换”不会把不同视频误记为同一族。")
         )
         summary.setObjectName("dialogSummary")
         summary.setWordWrap(True)
@@ -458,17 +459,17 @@ class PptxUpgradeReviewDialog(QDialog):
 
         self.settings = QSettings("Doc Media Toolkit", "Doc Media Toolkit")
         tier_row = QHBoxLayout()
-        tier_row.addWidget(QLabel("回填质量"))
+        tier_row.addWidget(QLabel(tr("回填质量")))
         self.tier_combo = QComboBox()
         for key, spec in BACKFILL_QUALITY_TIERS.items():
             self.tier_combo.addItem(
-                f"{spec['label']}（≤{spec['max_height']}p"
+                f"{spec['label']}{tr('（≤')}{spec['max_height']}p"
                 + (
-                    f" · ≤{spec['bitrate_kbps'] // 1000}Mbps"
+                    f"{tr(' · ≤')}{spec['bitrate_kbps'] // 1000}Mbps"
                     if spec["bitrate_kbps"]
                     else ""
                 )
-                + "）",
+                + tr("）"),
                 key,
             )
         saved_tier = str(
@@ -482,7 +483,7 @@ class PptxUpgradeReviewDialog(QDialog):
         splitter = QSplitter(Qt.Orientation.Horizontal)
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(
-            ["PPTX 视频", "当前规格", "匹配结果", "引用", "执行计划"]
+            [tr("PPTX 视频"), tr("当前规格"), tr("匹配结果"), tr("引用"), tr("执行计划")]
         )
         self.tree.setColumnWidth(0, 150)
         self.tree.setColumnWidth(1, 120)
@@ -496,20 +497,20 @@ class PptxUpgradeReviewDialog(QDialog):
         detail = QWidget()
         detail.setMinimumWidth(480)
         detail_layout = QVBoxLayout(detail)
-        self.detail_title = QLabel("选择左侧视频查看匹配详情")
+        self.detail_title = QLabel(tr("选择左侧视频查看匹配详情"))
         self.detail_title.setWordWrap(True)
         detail_layout.addWidget(self.detail_title)
 
         previews = QHBoxLayout()
-        self.current_preview = VideoMatchDialog._preview_label("PPTX 当前视频")
-        self.target_preview = VideoMatchDialog._preview_label("目标高清源")
+        self.current_preview = VideoMatchDialog._preview_label(tr("PPTX 当前视频"))
+        self.target_preview = VideoMatchDialog._preview_label(tr("目标高清源"))
         previews.addWidget(self.current_preview, 1)
         previews.addWidget(self.target_preview, 1)
         detail_layout.addLayout(previews)
 
         preview_actions = QHBoxLayout()
-        self.current_play = QPushButton("播放 PPTX 当前视频")
-        self.target_play = QPushButton("播放目标高清源")
+        self.current_play = QPushButton(tr("播放 PPTX 当前视频"))
+        self.target_play = QPushButton(tr("播放目标高清源"))
         self.current_play.clicked.connect(self._play_current)
         self.target_play.clicked.connect(self._play_target)
         preview_actions.addWidget(self.current_play, 1)
@@ -517,17 +518,17 @@ class PptxUpgradeReviewDialog(QDialog):
         detail_layout.addLayout(preview_actions)
 
         family_row = QHBoxLayout()
-        family_row.addWidget(QLabel("目标视频族"))
+        family_row.addWidget(QLabel(tr("目标视频族")))
         self.family_combo = QComboBox()
         self.family_combo.setEditable(True)
         self.family_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         self.family_combo.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
-        self.family_combo.addItem("未选择", None)
+        self.family_combo.addItem(tr("未选择"), None)
         for family in families:
             resolution = family.get("resolution") or ""
-            label = f"{family['name']} · {resolution}" if resolution else family["name"]
+            label = f"{family['name']}{tr(' · ')}{resolution}" if resolution else family["name"]
             self.family_combo.addItem(label, family["id"])
         completer = self.family_combo.completer()
         if completer is not None:
@@ -538,11 +539,11 @@ class PptxUpgradeReviewDialog(QDialog):
         family_row.addWidget(self.family_combo, 1)
         detail_layout.addLayout(family_row)
 
-        action_box = QGroupBox("本视频处理方式")
+        action_box = QGroupBox(tr("本视频处理方式"))
         action_layout = QVBoxLayout(action_box)
-        self.keep_radio = QRadioButton("保持 PPTX 当前视频，不回填")
-        self.replace_radio = QRadioButton("用所选高清源替换，仅本次输出使用")
-        self.remember_radio = QRadioButton("确认是同一视频：替换并记住当前媒体哈希")
+        self.keep_radio = QRadioButton(tr("保持 PPTX 当前视频，不回填"))
+        self.replace_radio = QRadioButton(tr("用所选高清源替换，仅本次输出使用"))
+        self.remember_radio = QRadioButton(tr("确认是同一视频：替换并记住当前媒体哈希"))
         self.action_group = QButtonGroup(self)
         for button in (self.keep_radio, self.replace_radio, self.remember_radio):
             self.action_group.addButton(button)
@@ -564,11 +565,11 @@ class PptxUpgradeReviewDialog(QDialog):
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("按清单另存回填")
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText(tr("按清单另存回填"))
         buttons.button(QDialogButtonBox.StandardButton.Ok).setObjectName(
             "primaryAction"
         )
-        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("取消")
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(tr("取消"))
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -581,24 +582,24 @@ class PptxUpgradeReviewDialog(QDialog):
     def _add_item(self, item: dict[str, Any]) -> None:
         metadata = item.get("metadata") or {}
         resolution = (
-            f"{int(metadata.get('width') or 0)}×"
-            f"{int(metadata.get('height') or 0)} · "
+            f"{int(metadata.get('width') or 0)}×" +
+            f"{int(metadata.get('height') or 0)}{tr(' · ')}" +
             f"{_format_duration(float(metadata.get('duration_sec') or 0))}"
         )
         kind = item.get("match_kind")
         target_available = bool(item.get("target_source"))
         if kind in {"exact", "content"} and not target_available:
-            match = f"匹配但高清源不可用 · {item.get('family_name') or '未知族'}"
+            match = f"{tr('匹配但高清源不可用 · ')}{item.get('family_name') or tr('未知族')}"
         elif kind == "exact":
-            match = f"精确匹配 · {item.get('family_name') or '未知族'}"
+            match = f"{tr('精确匹配 · ')}{item.get('family_name') or tr('未知族')}"
         elif kind == "content":
-            match = f"内容匹配 · {item.get('family_name') or '未知族'}"
+            match = f"{tr('内容匹配 · ')}{item.get('family_name') or tr('未知族')}"
         else:
             first_candidate = next(iter(item.get("candidates") or []), None)
             match = (
-                f"待确认 · 建议 {first_candidate['family_name']}"
+                f"{tr('待确认 · 建议 ')}{first_candidate['family_name']}"
                 if first_candidate
-                else "未找到可靠候选"
+                else tr("未找到可靠候选")
             )
         suggested_family_id = next(
             (
@@ -612,17 +613,17 @@ class PptxUpgradeReviewDialog(QDialog):
             item.get("family_id") if target_available else None
         ) or suggested_family_id
         if item.get("already_high_quality"):
-            action = "保持当前（已是高清源）"
+            action = tr("保持当前（已是高清源）")
             plan_action = "keep"
         elif item.get("family_id") and target_available:
             if kind == "content":
-                action = "内容匹配：回填并记住"
+                action = tr("内容匹配：回填并记住")
                 plan_action = "remember"
             else:
-                action = "回填建议高清源"
+                action = tr("回填建议高清源")
                 plan_action = "replace"
         else:
-            action = "保持当前（待人工选择）"
+            action = tr("保持当前（待人工选择）")
             plan_action = "keep"
         media_path = str(item["media_path"])
         self.plans[media_path] = {
@@ -653,11 +654,11 @@ class PptxUpgradeReviewDialog(QDialog):
         source = Path(item["source"])
         metadata = item.get("metadata") or {}
         self.detail_title.setText(
-            f"{Path(item['media_path']).name} · "
-            f"{int(metadata.get('width') or 0)}×"
-            f"{int(metadata.get('height') or 0)} · "
-            f"{_format_duration(float(metadata.get('duration_sec') or 0))} · "
-            f"{len(item.get('occurrences') or [])} 处引用"
+            f"{Path(item['media_path']).name}{tr(' · ')}" +
+            f"{int(metadata.get('width') or 0)}×" +
+            f"{int(metadata.get('height') or 0)}{tr(' · ')}" +
+            f"{_format_duration(float(metadata.get('duration_sec') or 0))}{tr(' · ')}" +
+            f"{len(item.get('occurrences') or [])}{tr(' 处引用')}"
         )
         _set_video_thumbnail(
             self.current_preview, source, str(item.get("sha256") or source.name)
@@ -733,16 +734,16 @@ class PptxUpgradeReviewDialog(QDialog):
         plan = self.plans[str(item["media_path"])]
         family = self._family_by_id(plan.get("family_id"))
         if plan["action"] == "keep":
-            text = "保持当前"
+            text = tr("保持当前")
         elif family is None:
-            text = "请选择目标视频族"
+            text = tr("请选择目标视频族")
         else:
             base = (
-                f"关联并回填 · {family['name']}"
+                f"{tr('关联并回填 · ')}{family['name']}"
                 if plan["action"] == "remember"
-                else f"仅本次回填 · {family['name']}"
+                else f"{tr('仅本次回填 · ')}{family['name']}"
             )
-            text = f"{base} · {plan_backfill_action(self._family_metadata(family), self.quality_tier())}"
+            text = f"{base}{tr(' · ')}{plan_backfill_action(self._family_metadata(family), self.quality_tier())}"
         row.setText(4, text)
 
     def _refresh_target(self) -> None:
@@ -753,7 +754,7 @@ class PptxUpgradeReviewDialog(QDialog):
         self.remember_radio.setEnabled(enabled)
         if family is None:
             self.target_preview.setPixmap(QPixmap())
-            self.target_preview.setText("选择目标视频族后显示高清源封面")
+            self.target_preview.setText(tr("选择目标视频族后显示高清源封面"))
             return
         _set_video_thumbnail(
             self.target_preview,
@@ -763,16 +764,16 @@ class PptxUpgradeReviewDialog(QDialog):
 
     def _refresh_explanation(self) -> None:
         if self.keep_radio.isChecked():
-            text = "保持：输出 PPTX 中该视频完全不变，也不会新增关联。"
+            text = tr("保持：输出 PPTX 中该视频完全不变，也不会新增关联。")
         elif self.remember_radio.isChecked():
             text = (
-                "确认同一视频：成功输出并校验后，把当前媒体哈希记入该视频族；"
-                "以后同一压缩版可自动匹配。"
+                tr("确认同一视频：成功输出并校验后，把当前媒体哈希记入该视频族；") +
+                tr("以后同一压缩版可自动匹配。")
             )
         else:
             text = (
-                "仅本次替换：输出使用所选高清源，但不会把当前视频登记为同一内容，"
-                "适合临时指定或身份仍不确定的情况。"
+                tr("仅本次替换：输出使用所选高清源，但不会把当前视频登记为同一内容，") +
+                tr("适合临时指定或身份仍不确定的情况。")
             )
         self.explanation.setText(text)
 
@@ -795,7 +796,7 @@ class PptxUpgradeReviewDialog(QDialog):
     def _open_video(self, path: Path) -> None:
         if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(path))):
             QMessageBox.warning(
-                self, "确认 PPTX 高清回填", f"无法打开视频：{path.name}"
+                self, tr("确认 PPTX 高清回填"), f"{tr('无法打开视频：')}{path.name}"
             )
 
     def accept(self) -> None:
@@ -807,8 +808,8 @@ class PptxUpgradeReviewDialog(QDialog):
         if invalid:
             QMessageBox.warning(
                 self,
-                "确认 PPTX 高清回填",
-                "仍有计划回填但未选择目标视频族的项目，请先处理。",
+                tr("确认 PPTX 高清回填"),
+                tr("仍有计划回填但未选择目标视频族的项目，请先处理。"),
             )
             return
         super().accept()
@@ -838,7 +839,7 @@ class CleanupDialog(QDialog):
         ssim_threshold: float,
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("整理视频库")
+        self.setWindowTitle(tr("整理视频库"))
         self.setMinimumSize(760, 500)
         self.resize(920, 600)
         self.setStyleSheet(MEDIA_MANAGER_STYLESHEET)
@@ -848,13 +849,13 @@ class CleanupDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(12)
-        title = QLabel("整理视频库")
+        title = QLabel(tr("整理视频库"))
         title.setObjectName("dialogTitle")
         layout.addWidget(title)
         hint = QLabel(
-            f"每组都是系统认为重复的视频。★ 是推荐保留项；画面相似度越接近 1 越一致"
-            f"（本次门槛 {ssim_threshold:.2f}）。时长或音轨不一致的版本会被锁定，"
-            "不会自动清理。整理只把文件移到“待清理”，之后仍可恢复。"
+            f"{tr('每组都是系统认为重复的视频。★ 是推荐保留项；画面相似度越接近 1 越一致')}" +
+            f"{tr('（本次门槛 ')}{ssim_threshold:.2f}{tr('）。时长或音轨不一致的版本会被锁定，')}" +
+            tr("不会自动清理。整理只把文件移到“待清理”，之后仍可恢复。")
         )
         hint.setObjectName("dialogSummary")
         hint.setWordWrap(True)
@@ -863,13 +864,13 @@ class CleanupDialog(QDialog):
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(
             [
-                "保留",
-                "视频 / 版本",
-                "分辨率",
-                "时长",
-                "大小",
-                "画面相似度",
-                "处理建议",
+                tr("保留"),
+                tr("视频 / 版本"),
+                tr("分辨率"),
+                tr("时长"),
+                tr("大小"),
+                tr("画面相似度"),
+                tr("处理建议"),
             ]
         )
         # Leave enough room for the scaled indicator plus its column padding;
@@ -890,11 +891,11 @@ class CleanupDialog(QDialog):
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("应用整理")
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText(tr("应用整理"))
         buttons.button(QDialogButtonBox.StandardButton.Ok).setObjectName(
             "primaryAction"
         )
-        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("取消")
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(tr("取消"))
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -918,19 +919,19 @@ class CleanupDialog(QDialog):
             if candidate["variant_id"] == rec["keep_variant_id"]:
                 keep_radio.setChecked(True)
             note = (
-                "文件损坏或不完整，仅可清理"
+                tr("文件损坏或不完整，仅可清理")
                 if candidate.get("integrity_error")
-                else "；".join(candidate["block_reasons"])
+                else tr("；").join(candidate["block_reasons"])
             ) or (
-                "推荐保留"
+                tr("推荐保留")
                 if candidate["variant_id"] == rec["keep_variant_id"]
-                else "可清理"
+                else tr("可清理")
             )
             row = QTreeWidgetItem(
                 group_item,
                 [
                     "",
-                    f"{marker}{candidate['family_name']} · {candidate['label']}",
+                    f"{marker}{candidate['family_name']}{tr(' · ')}{candidate['label']}",
                     f"{candidate['width']}×{candidate['height']}",
                     _format_duration(candidate["duration_sec"]),
                     _format_mb(candidate["size_bytes"]),
@@ -940,16 +941,16 @@ class CleanupDialog(QDialog):
             )
             row.setToolTip(
                 1,
-                "{}\n{}×{} · {}kbps · {} · 音轨：{}".format(
+                tr("{}\n{}×{} · {}kbps · {} · 音轨：{}").format(
                     candidate["path"],
                     candidate["width"],
                     candidate["height"],
                     candidate["bitrate_kbps"],
-                    candidate["video_codec"] or "未知编码",
+                    candidate["video_codec"] or tr("未知编码"),
                     (
-                        candidate["audio_codec"] or "有"
+                        candidate["audio_codec"] or tr("有")
                         if candidate["has_audio"]
-                        else "无"
+                        else tr("无")
                     ),
                 ),
             )
@@ -969,14 +970,14 @@ class CleanupDialog(QDialog):
         action_layout.setSpacing(4)
         primary_actions = QHBoxLayout()
         primary_actions.setSpacing(12)
-        action_label = QLabel("处理这组：")
+        action_label = QLabel(tr("处理这组："))
         action_label.setObjectName("cleanupActionLabel")
         action_label.setMinimumWidth(72)
         primary_actions.addWidget(action_label)
-        unify_radio = QRadioButton("生成兼容 1080p 后清理其他")
+        unify_radio = QRadioButton(tr("生成兼容 1080p 后清理其他"))
         unify_radio.setEnabled(rec["unify_available"] and safe_to_apply)
-        skip_radio = QRadioButton("暂不处理")
-        keep_radio = QRadioButton("保留勾选版本，其他移入待清理")
+        skip_radio = QRadioButton(tr("暂不处理"))
+        keep_radio = QRadioButton(tr("保留勾选版本，其他移入待清理"))
         eligible_candidates = [
             candidate
             for candidate in group["candidates"]
@@ -996,17 +997,17 @@ class CleanupDialog(QDialog):
         keep_radio.setEnabled(len(eligible_candidates) >= 2 or force_enabled)
         if not keep_radio.isEnabled():
             keep_radio.setToolTip(
-                "没有至少两个通过时长、音轨和内容一致性校验的版本；"
-                "被锁定的版本不会自动移入待清理。"
+                tr("没有至少两个通过时长、音轨和内容一致性校验的版本；") +
+                tr("被锁定的版本不会自动移入待清理。")
             )
-        force_check = QCheckBox("人工确认：连锁定版本也移入待清理")
+        force_check = QCheckBox(tr("人工确认：连锁定版本也移入待清理"))
         force_check.setObjectName("cleanupForceCheck")
         force_check.setEnabled(force_enabled)
         force_visible = group["kind"] == "within_family" and bool(forced_candidates)
         force_check.setVisible(force_visible)
         force_check.setToolTip(
-            "仅限族内整理；不会验证该版本与保留项完全一致，"
-            "确认后仍先移入可恢复的待清理目录。"
+            tr("仅限族内整理；不会验证该版本与保留项完全一致，") +
+            tr("确认后仍先移入可恢复的待清理目录。")
         )
         action_group = QButtonGroup(self)
         action_group.setExclusive(True)
@@ -1032,9 +1033,9 @@ class CleanupDialog(QDialog):
             force_actions.setSpacing(8)
             force_actions.addWidget(force_check)
             force_hint = QLabel(
-                "仅族内可用；仍先移入可恢复的待清理目录"
+                tr("仅族内可用；仍先移入可恢复的待清理目录")
                 if force_enabled
-                else "需要至少一个可安全保留的版本"
+                else tr("需要至少一个可安全保留的版本")
             )
             force_hint.setObjectName("cleanupForceHint")
             force_hint.setWordWrap(True)
@@ -1088,8 +1089,8 @@ class CleanupDialog(QDialog):
             if not keep.get("auto_allowed", False):
                 QMessageBox.warning(
                     self,
-                    "无法强制整理",
-                    "强制整理必须保留已通过内容一致性校验的版本。",
+                    tr("无法强制整理"),
+                    tr("强制整理必须保留已通过内容一致性校验的版本。"),
                 )
                 return
         super().accept()
@@ -1196,7 +1197,7 @@ class CleanupDialog(QDialog):
                 "remove_variant_ids": remove_ids,
                 "force_remove_variant_ids": force_ids,
                 "unify_first": entry["unify"].isChecked(),
-                "reason": "整理视频库",
+                "reason": tr("整理视频库"),
             }
             if group["kind"] == "cross_family":
                 keep_family = next(
@@ -1216,14 +1217,14 @@ class PendingCleanupDialog(QDialog):
     def __init__(self, parent: QWidget, window: MainWindow) -> None:
         super().__init__(parent)
         self.window = window
-        self.setWindowTitle("待清理目录")
+        self.setWindowTitle(tr("待清理目录"))
         self.setMinimumSize(720, 440)
         self.resize(860, 540)
         self.setStyleSheet(MEDIA_MANAGER_STYLESHEET)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(12)
-        title = QLabel("待清理目录")
+        title = QLabel(tr("待清理目录"))
         title.setObjectName("dialogTitle")
         layout.addWidget(title)
         self.summary = QLabel()
@@ -1231,7 +1232,7 @@ class PendingCleanupDialog(QDialog):
         self.summary.setWordWrap(True)
         layout.addWidget(self.summary)
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["文件", "来源视频族", "大小", "原因", "隔离时间"])
+        self.tree.setHeaderLabels([tr("文件"), tr("来源视频族"), tr("大小"), tr("原因"), tr("隔离时间")])
         self.tree.setColumnWidth(0, 240)
         self.tree.setColumnWidth(1, 140)
         self.tree.setColumnWidth(2, 80)
@@ -1240,12 +1241,12 @@ class PendingCleanupDialog(QDialog):
         layout.addWidget(self.tree, 1)
 
         button_row = QHBoxLayout()
-        self.restore_button = QPushButton("还原选中")
+        self.restore_button = QPushButton(tr("还原选中"))
         self.restore_button.clicked.connect(self.restore_selected)
-        self.empty_button = QPushButton("清空待清理")
+        self.empty_button = QPushButton(tr("清空待清理"))
         self.empty_button.setObjectName("dangerAction")
         self.empty_button.clicked.connect(self.empty_all)
-        close_button = QPushButton("关闭")
+        close_button = QPushButton(tr("关闭"))
         close_button.clicked.connect(self.accept)
         button_row.addWidget(self.restore_button)
         button_row.addWidget(self.empty_button)
@@ -1258,7 +1259,7 @@ class PendingCleanupDialog(QDialog):
         project = self.window.project
         self.tree.clear()
         if project is None:
-            self.summary.setText("尚未打开视频库。")
+            self.summary.setText(tr("尚未打开视频库。"))
             self.restore_button.setEnabled(False)
             self.empty_button.setEnabled(False)
             return
@@ -1266,14 +1267,14 @@ class PendingCleanupDialog(QDialog):
         issues = project.cleanup_pending_issues()
         total = sum(entry["size_bytes"] for entry in entries)
         if not entries:
-            self.summary.setText("当前没有待清理文件。")
+            self.summary.setText(tr("当前没有待清理文件。"))
         else:
             self.summary.setText(
-                f"共 {len(entries)} 个文件，{_format_mb(total)}。"
+                f"{tr('共 ')}{len(entries)}{tr(' 个文件，')}{_format_mb(total)}{tr('。')}"
                 + (
-                    f"\n⚠ {'；'.join(issues)}"
+                    f"\n⚠ {tr('；').join(issues)}"
                     if issues
-                    else "\n迁移校验通过，可以清空。"
+                    else tr("\n迁移校验通过，可以清空。")
                 )
             )
         for entry in entries:
@@ -1299,9 +1300,9 @@ class PendingCleanupDialog(QDialog):
         try:
             restored = self.window.project.restore_cleanup_entry(token)
         except Exception as exc:
-            QMessageBox.warning(self, "待清理目录", str(exc))
+            QMessageBox.warning(self, tr("待清理目录"), str(exc))
             return
-        self.window.append_log(f"已还原：{restored}")
+        self.window.append_log(f"{tr('已还原：')}{restored}")
         self.window.refresh_views()
         self.reload()
 
@@ -1310,8 +1311,8 @@ class PendingCleanupDialog(QDialog):
             return
         answer = QMessageBox.question(
             self,
-            "清空待清理",
-            "清空后文件将被永久删除，且 PPTX 哈希别名与视频族迁移已完成。是否继续？",
+            tr("清空待清理"),
+            tr("清空后文件将被永久删除，且 PPTX 哈希别名与视频族迁移已完成。是否继续？"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -1320,31 +1321,31 @@ class PendingCleanupDialog(QDialog):
         try:
             removed = self.window.project.empty_cleanup()
         except Exception as exc:
-            QMessageBox.warning(self, "待清理目录", str(exc))
+            QMessageBox.warning(self, tr("待清理目录"), str(exc))
             return
-        self.window.append_log(f"已清空 {removed} 个待清理文件。")
+        self.window.append_log(f"{tr('已清空 ')}{removed}{tr(' 个待清理文件。')}")
         self.window.refresh_views()
         self.reload()
 
 
 class LibraryHealthDialog(QDialog):
     ISSUE_TITLES = {
-        "invalid_family_pointer": "版本指针无效",
-        "missing_variant": "视频文件丢失",
-        "modified_variant": "视频文件被修改",
-        "hash_mismatch": "视频哈希不一致",
-        "variant_metadata_drift": "文件时间戳变化",
-        "unreadable_variant": "媒体不可读",
-        "ambiguous_known_hash": "哈希归属冲突",
-        "duplicate_variant_hash": "实体跨族重复",
-        "duplicate_variant_path": "路径重复引用",
-        "deck_primary_missing_alias_available": "PPTX 主路径失效",
-        "deck_source_missing": "PPTX 来源丢失",
-        "missing_output_record": "历史输出已删除",
-        "changed_output_record": "历史输出被修改",
-        "untracked_media": "未登记媒体文件",
-        "cleanup_index_issue": "待清理索引冲突",
-        "cleanup_index_invalid": "待清理索引损坏",
+        "invalid_family_pointer": tr("版本指针无效"),
+        "missing_variant": tr("视频文件丢失"),
+        "modified_variant": tr("视频文件被修改"),
+        "hash_mismatch": tr("视频哈希不一致"),
+        "variant_metadata_drift": tr("文件时间戳变化"),
+        "unreadable_variant": tr("媒体不可读"),
+        "ambiguous_known_hash": tr("哈希归属冲突"),
+        "duplicate_variant_hash": tr("实体跨族重复"),
+        "duplicate_variant_path": tr("路径重复引用"),
+        "deck_primary_missing_alias_available": tr("PPTX 主路径失效"),
+        "deck_source_missing": tr("PPTX 来源丢失"),
+        "missing_output_record": tr("历史输出已删除"),
+        "changed_output_record": tr("历史输出被修改"),
+        "untracked_media": tr("未登记媒体文件"),
+        "cleanup_index_issue": tr("待清理索引冲突"),
+        "cleanup_index_invalid": tr("待清理索引损坏"),
     }
 
     def __init__(
@@ -1357,7 +1358,7 @@ class LibraryHealthDialog(QDialog):
         self.setObjectName("libraryHealthDialog")
         self.window = window
         self.report = report
-        self.setWindowTitle("视频库体检")
+        self.setWindowTitle(tr("视频库体检"))
         self.setMinimumSize(760, 500)
         self.resize(900, 600)
         self.setStyleSheet(MEDIA_MANAGER_STYLESHEET)
@@ -1365,7 +1366,7 @@ class LibraryHealthDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(12)
-        title = QLabel("视频库体检")
+        title = QLabel(tr("视频库体检"))
         title.setObjectName("dialogTitle")
         layout.addWidget(title)
         self.summary = QLabel()
@@ -1375,7 +1376,7 @@ class LibraryHealthDialog(QDialog):
 
         self.tree = QTreeWidget()
         self.tree.setObjectName("healthTree")
-        self.tree.setHeaderLabels(["级别", "检查项", "数量", "说明 / 对象"])
+        self.tree.setHeaderLabels([tr("级别"), tr("检查项"), tr("数量"), tr("说明 / 对象")])
         self.tree.setColumnWidth(0, 80)
         self.tree.setColumnWidth(1, 190)
         self.tree.setColumnWidth(2, 70)
@@ -1383,29 +1384,29 @@ class LibraryHealthDialog(QDialog):
         layout.addWidget(self.tree, 1)
 
         hint = QLabel(
-            "“无关联”可能是独立素材，“多版本”可能是主动保留候选，"
-            "都不等于数据损坏。只有红色错误会阻断安全回填或清理。"
+            tr("“无关联”可能是独立素材，“多版本”可能是主动保留候选，") +
+            tr("都不等于数据损坏。只有红色错误会阻断安全回填或清理。")
         )
         hint.setObjectName("healthHint")
         hint.setWordWrap(True)
         layout.addWidget(hint)
 
         buttons = QHBoxLayout()
-        self.full_verify_button = QPushButton("完整哈希复核")
+        self.full_verify_button = QPushButton(tr("完整哈希复核"))
         self.full_verify_button.setToolTip(
-            "逐个读取并计算全部库内视频哈希；可区分内容变化与时间戳变化，"
-            "耗时较长，但不会修改任何文件。"
+            tr("逐个读取并计算全部库内视频哈希；可区分内容变化与时间戳变化，") +
+            tr("耗时较长，但不会修改任何文件。")
         )
         self.full_verify_button.clicked.connect(self.run_full_verification)
-        self.prune_button = QPushButton("清理失效输出记录")
+        self.prune_button = QPushButton(tr("清理失效输出记录"))
         self.prune_button.setToolTip(
-            "只删除指向已不存在 PPTX 的历史输出记录；"
-            "不会修改视频、视频族、PPTX 来源或形状关联。"
+            tr("只删除指向已不存在 PPTX 的历史输出记录；") +
+            tr("不会修改视频、视频族、PPTX 来源或形状关联。")
         )
         self.prune_button.clicked.connect(self.prune_stale_outputs)
-        save_button = QPushButton("保存 JSON 报告")
+        save_button = QPushButton(tr("保存 JSON 报告"))
         save_button.clicked.connect(self.save_report)
-        close_button = QPushButton("关闭")
+        close_button = QPushButton(tr("关闭"))
         close_button.clicked.connect(self.accept)
         buttons.addWidget(self.full_verify_button)
         buttons.addWidget(self.prune_button)
@@ -1419,16 +1420,16 @@ class LibraryHealthDialog(QDialog):
         self.report = report
         stats = report["stats"]
         health = (
-            "核心关联与媒体实体通过检查"
+            tr("核心关联与媒体实体通过检查")
             if report["ok"]
-            else f"发现 {stats['errors']} 个阻断性错误"
+            else f"{tr('发现 ')}{stats['errors']}{tr(' 个阻断性错误')}"
         )
         self.summary.setText(
-            f"{health}。{stats['families']} 个视频族 / {stats['variants']} 个版本 / "
-            f"{stats['decks']} 份 PPTX / {stats['references']} 处媒体引用；"
-            f"警告 {stats['warnings']}，历史信息 {stats['info']}。"
+            f"{health}{tr('。')}{stats['families']}{tr(' 个视频族 / ')}{stats['variants']}{tr(' 个版本 / ')}" +
+            f"{stats['decks']}{tr(' 份 PPTX / ')}{stats['references']}{tr(' 处媒体引用；')}" +
+            f"{tr('警告 ')}{stats['warnings']}{tr('，历史信息 ')}{stats['info']}{tr('。')}"
             + (
-                f" 本次为{'完整哈希' if report['mode'] == 'full_hash' else '快速'}检查。"
+                f"{tr(' 本次为')}{tr('完整哈希') if report['mode'] == 'full_hash' else tr('快速')}{tr('检查。')}"
             )
         )
         self.tree.clear()
@@ -1436,7 +1437,7 @@ class LibraryHealthDialog(QDialog):
         for issue in report["issues"]:
             grouped.setdefault(issue["code"], []).append(issue)
         severity_order = {"error": 0, "warning": 1, "info": 2}
-        severity_text = {"error": "错误", "warning": "警告", "info": "信息"}
+        severity_text = {"error": tr("错误"), "warning": tr("警告"), "info": tr("信息")}
         severity_color = {
             "error": QColor("#fb7185"),
             "warning": QColor("#fbbf24"),
@@ -1475,14 +1476,14 @@ class LibraryHealthDialog(QDialog):
             if len(issues) > 50:
                 QTreeWidgetItem(
                     group_item,
-                    ["", "", "", f"另有 {len(issues) - 50} 条，请保存 JSON 报告查看。"],
+                    ["", "", "", f"{tr('另有 ')}{len(issues) - 50}{tr(' 条，请保存 JSON 报告查看。')}"],
                 )
         if not grouped:
             QTreeWidgetItem(
-                self.tree, ["通过", "未发现问题", "0", "可以继续入库、清理和回填。"]
+                self.tree, [tr("通过"), tr("未发现问题"), "0", tr("可以继续入库、清理和回填。")]
             )
         self.prune_button.setEnabled(stats["stale_output_records"] > 0)
-        self.prune_button.setText(f"清理失效输出记录 ({stats['stale_output_records']})")
+        self.prune_button.setText(f"{tr('清理失效输出记录 (')}{stats['stale_output_records']})")
         self.full_verify_button.setEnabled(report["mode"] != "full_hash")
 
     def run_full_verification(self) -> None:
@@ -1496,9 +1497,9 @@ class LibraryHealthDialog(QDialog):
         count = self.report["stats"]["stale_output_records"]
         answer = QMessageBox.question(
             self,
-            "清理失效输出记录",
-            f"将删除 {count} 条指向已不存在 PPTX 的历史输出记录。\n\n"
-            "视频实体、视频族、PPTX 来源、哈希别名和形状关联不会改变。是否继续？",
+            tr("清理失效输出记录"),
+            f"{tr('将删除 ')}{count}{tr(' 条指向已不存在 PPTX 的历史输出记录。')}\n\n" +
+            tr("视频实体、视频族、PPTX 来源、哈希别名和形状关联不会改变。是否继续？"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -1508,9 +1509,9 @@ class LibraryHealthDialog(QDialog):
             removed = prune_missing_output_records(project)
             report = audit_video_project(project)
         except Exception as exc:
-            QMessageBox.warning(self, "清理失效输出记录", str(exc))
+            QMessageBox.warning(self, tr("清理失效输出记录"), str(exc))
             return
-        self.window.append_log(f"已清理 {removed} 条失效历史输出记录。")
+        self.window.append_log(f"{tr('已清理 ')}{removed}{tr(' 条失效历史输出记录。')}")
         self.window.refresh_views()
         self.reload(report)
 
@@ -1523,7 +1524,7 @@ class LibraryHealthDialog(QDialog):
         default = reports / f"library-health-{datetime.now():%Y%m%d-%H%M%S}.json"
         selected, _ = QFileDialog.getSaveFileName(
             self,
-            "保存视频库体检报告",
+            tr("保存视频库体检报告"),
             str(default),
             "JSON (*.json)",
         )
@@ -1536,7 +1537,7 @@ class LibraryHealthDialog(QDialog):
             json.dumps(self.report, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
-        self.window.append_log(f"已保存视频库体检报告：{target}")
+        self.window.append_log(f"{tr('已保存视频库体检报告：')}{target}")
 
 
 class MainWindow(QMainWindow):
@@ -1546,7 +1547,7 @@ class MainWindow(QMainWindow):
             configure_ui_font(app)
         super().__init__()
         configure_app_logging()
-        self.setWindowTitle("PPTX 视频资产库")
+        self.setWindowTitle(tr("PPTX 视频资产库"))
         self.setAcceptDrops(True)
         self.setMinimumSize(880, 560)
         self.resize(960, 620)
@@ -1582,10 +1583,10 @@ class MainWindow(QMainWindow):
         header.setObjectName("headerCard")
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(12, 8, 12, 8)
-        title = QLabel("PPTX 视频资产库")
+        title = QLabel(tr("PPTX 视频资产库"))
         title.setObjectName("pageTitle")
         subtitle = QLabel(
-            "管理高清源、版本与 PPTX 形状关联，为压缩文档安全回填可播放视频"
+            tr("管理高清源、版本与 PPTX 形状关联，为压缩文档安全回填可播放视频")
         )
         subtitle.setObjectName("pageSubtitle")
         title_stack = QVBoxLayout()
@@ -1596,7 +1597,7 @@ class MainWindow(QMainWindow):
         header_layout.addLayout(title_stack, 1)
         self.help_button = QPushButton("?")
         self.help_button.setObjectName("helpIconButton")
-        self.help_button.setToolTip("使用说明")
+        self.help_button.setToolTip(tr("使用说明"))
         self.help_button.setFixedSize(30, 30)
         self.help_button.clicked.connect(self.show_help)
         header_layout.addWidget(
@@ -1610,42 +1611,42 @@ class MainWindow(QMainWindow):
         project_frame.setObjectName("projectBar")
         project_bar = QHBoxLayout(project_frame)
         project_bar.setContentsMargins(12, 8, 8, 8)
-        self.project_label = QLabel("尚未打开视频库 · 可按主题新建多个独立库")
+        self.project_label = QLabel(tr("尚未打开视频库 · 可按主题新建多个独立库"))
         self.project_label.setObjectName("projectPath")
         project_bar.addWidget(self.project_label, 1)
-        self.new_project_button = QPushButton("新建视频库")
+        self.new_project_button = QPushButton(tr("新建视频库"))
         self.new_project_button.clicked.connect(self.choose_new_project)
-        self.open_project_button = QPushButton("切换 / 打开视频库")
+        self.open_project_button = QPushButton(tr("切换 / 打开视频库"))
         self.open_project_button.setFixedHeight(32)
         self.open_project_button.setToolTip(
-            "每个目录都是独立视频库；可按客户、主题或项目建立多个库。"
+            tr("每个目录都是独立视频库；可按客户、主题或项目建立多个库。")
         )
         self.open_project_button.clicked.connect(self.choose_open_project)
-        logs_button = QPushButton("日志目录")
+        logs_button = QPushButton(tr("日志目录"))
         logs_button.clicked.connect(self.open_logs)
-        self.log_panel_button = QPushButton("操作记录")
+        self.log_panel_button = QPushButton(tr("操作记录"))
         self.log_panel_button.setCheckable(True)
         self.log_panel_button.setToolTip(
-            "显示本次运行记录；长期滚动日志请点击“日志目录”。"
+            tr("显示本次运行记录；长期滚动日志请点击“日志目录”。")
         )
         self.log_panel_button.toggled.connect(self.toggle_operation_log)
-        self.health_button = QPushButton("库体检")
+        self.health_button = QPushButton(tr("库体检"))
         self.health_button.setToolTip(
-            "检查视频实体、哈希归属、PPTX 关联、历史输出和待清理索引；"
-            "默认只读，不会修改视频库。"
+            tr("检查视频实体、哈希归属、PPTX 关联、历史输出和待清理索引；") +
+            tr("默认只读，不会修改视频库。")
         )
         self.health_button.clicked.connect(self.run_library_health)
         project_bar.addWidget(self.open_project_button)
-        self.project_menu_button = QPushButton("更多")
+        self.project_menu_button = QPushButton(tr("更多"))
         self.project_menu_button.setFixedHeight(32)
         self.project_menu = QMenu(self.project_menu_button)
         self.project_menu_button.setMenu(self.project_menu)
         self.project_action_targets: list[tuple[Any, QPushButton]] = []
         for label, button in (
-            ("新建视频库", self.new_project_button),
-            ("库体检", self.health_button),
-            ("操作记录", self.log_panel_button),
-            ("日志目录", logs_button),
+            (tr("新建视频库"), self.new_project_button),
+            (tr("库体检"), self.health_button),
+            (tr("操作记录"), self.log_panel_button),
+            (tr("日志目录"), logs_button),
         ):
             action = self.project_menu.addAction(label)
             action.triggered.connect(button.click)
@@ -1674,7 +1675,7 @@ class MainWindow(QMainWindow):
         self.progress.setRange(0, 1)
         self.progress.setValue(0)
         self.progress.setTextVisible(False)
-        self.cancel_button = QPushButton("停止")
+        self.cancel_button = QPushButton(tr("停止"))
         self.cancel_button.setEnabled(False)
         self.cancel_button.clicked.connect(self.stop_job)
         status_row.addWidget(self.progress, 1)
@@ -1682,7 +1683,7 @@ class MainWindow(QMainWindow):
         self.status_frame.hide()
         root.addWidget(self.status_frame)
 
-        self.log_shelf = QPushButton("状态与日志 · 等待操作")
+        self.log_shelf = QPushButton(tr("状态与日志 · 等待操作"))
         self.log_shelf.setObjectName("logShelf")
         self.log_shelf.setFixedHeight(26)
         self.log_shelf.clicked.connect(
@@ -1693,7 +1694,7 @@ class MainWindow(QMainWindow):
         self.log_output = QPlainTextEdit(central)
         self.log_output.setObjectName("operationLog")
         self.log_output.setReadOnly(True)
-        self.log_output.setPlaceholderText("操作记录会显示在这里")
+        self.log_output.setPlaceholderText(tr("操作记录会显示在这里"))
         self.log_output.setMaximumBlockCount(1000)
         self.log_output.hide()
         self.log_hide_timer = QTimer(self)
@@ -1705,9 +1706,9 @@ class MainWindow(QMainWindow):
     def show_help(self) -> None:
         QMessageBox.information(
             self,
-            "使用说明",
-            "选择或拖入 PPTX 后，可归档其中的视频并建立形状关联；"
-            "也可导入外部视频匹配，核对后再高清回填。",
+            tr("使用说明"),
+            tr("选择或拖入 PPTX 后，可归档其中的视频并建立形状关联；") +
+            tr("也可导入外部视频匹配，核对后再高清回填。"),
         )
 
     def _sync_project_actions(self) -> None:
@@ -1717,7 +1718,7 @@ class MainWindow(QMainWindow):
             action.setChecked(button.isChecked())
 
     def _build_workflow_panel(self) -> QGroupBox:
-        box = QGroupBox("PPTX 工作流")
+        box = QGroupBox(tr("PPTX 工作流"))
         layout = QVBoxLayout(box)
         layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(6)
@@ -1732,26 +1733,26 @@ class MainWindow(QMainWindow):
         self.workflow_files_layout = QHBoxLayout(self.workflow_files)
         self.workflow_files_layout.setContentsMargins(6, 3, 6, 3)
         self.workflow_files_layout.setSpacing(6)
-        self.input_summary = QLabel("可拖入或多选 PPTX，批量归档或高清回填")
+        self.input_summary = QLabel(tr("可拖入或多选 PPTX，批量归档或高清回填"))
         self.input_summary.setObjectName("inputSummary")
         self.input_summary.setAcceptDrops(True)
         self.input_summary.installEventFilter(self)
         self.input_summary.setToolTip(
-            "视频源独立入库，PPTX 只记录形状关联。"
-            "匹配依据哈希和内容特征，改文件名或目录不受影响。"
+            tr("视频源独立入库，PPTX 只记录形状关联。") +
+            tr("匹配依据哈希和内容特征，改文件名或目录不受影响。")
         )
         self.workflow_files_layout.addWidget(self.input_summary, 1)
         self.workflow_chip_widgets: list[QWidget] = []
         row1.addWidget(self.workflow_files, 1)
 
-        self.choose_input_button = QPushButton("选择 PPTX（可多选）")
+        self.choose_input_button = QPushButton(tr("选择 PPTX（可多选）"))
         self.choose_input_button.setFixedHeight(32)
         self.choose_input_button.setToolTip(
-            "可拖入或一次选择多个 PPTX，批量归档或高清回填。"
+            tr("可拖入或一次选择多个 PPTX，批量归档或高清回填。")
         )
         self.choose_input_button.clicked.connect(self.choose_input_pptx)
         row1.addWidget(self.choose_input_button)
-        self.workflow_menu_button = QPushButton("工作流设置")
+        self.workflow_menu_button = QPushButton(tr("工作流设置"))
         self.workflow_menu_button.setFixedHeight(32)
         self.workflow_menu = QMenu(self.workflow_menu_button)
         self.workflow_menu.setToolTipsVisible(True)
@@ -1766,18 +1767,18 @@ class MainWindow(QMainWindow):
         action_row.setContentsMargins(8, 4, 8, 4)
         action_row.setSpacing(6)
 
-        quality_label = QLabel("入库质量")
+        quality_label = QLabel(tr("入库质量"))
         quality_label.setObjectName("fieldLabel")
         action_row.addWidget(quality_label)
 
         self.source_quality_combo = QComboBox()
-        self.source_quality_combo.addItem("兼容 MP4（最高 1080p）", "1080p")
-        self.source_quality_combo.addItem("兼容 MP4（保留分辨率）", "mp4")
-        self.source_quality_combo.addItem("保留原片", "original")
+        self.source_quality_combo.addItem(tr("兼容 MP4（最高 1080p）"), "1080p")
+        self.source_quality_combo.addItem(tr("兼容 MP4（保留分辨率）"), "mp4")
+        self.source_quality_combo.addItem(tr("保留原片"), "original")
         self.source_quality_combo.setToolTip(
-            "最高 1080p：超限时高质量降采样并转 MP4；"
-            "保留分辨率：WMV、M4V 等转为兼容 MP4，不缩放；"
-            "保留原片：库内文件字节不变。转换前后哈希仍关联到同一资源。"
+            tr("最高 1080p：超限时高质量降采样并转 MP4；") +
+            tr("保留分辨率：WMV、M4V 等转为兼容 MP4，不缩放；") +
+            tr("保留原片：库内文件字节不变。转换前后哈希仍关联到同一资源。")
         )
         self.source_quality_combo.setMinimumWidth(210)
         self.source_quality_combo.setMinimumHeight(26)
@@ -1795,12 +1796,12 @@ class MainWindow(QMainWindow):
         )
         action_row.addWidget(self.source_quality_combo)
 
-        category_label = QLabel("分类目录")
+        category_label = QLabel(tr("分类目录"))
         category_label.setObjectName("fieldLabel")
         action_row.addWidget(category_label)
 
         self.category_input = QLineEdit()
-        self.category_input.setPlaceholderText("入库分类，例如：示例项目/2026")
+        self.category_input.setPlaceholderText(tr("入库分类，例如：示例项目/2026"))
         self.category_input.setMinimumWidth(140)
         self.category_input.setMinimumHeight(26)
         self.category_input.setText(
@@ -1811,34 +1812,34 @@ class MainWindow(QMainWindow):
         )
         action_row.addWidget(self.category_input, 1)
 
-        self.archive_button = QPushButton("归档 PPTX 视频")
+        self.archive_button = QPushButton(tr("归档 PPTX 视频"))
         self.archive_button.setObjectName("primaryAction")
         self.archive_button.setToolTip(
-            "提取所选 PPTX 的内嵌视频并建立形状关联；不修改 PPTX。"
+            tr("提取所选 PPTX 的内嵌视频并建立形状关联；不修改 PPTX。")
         )
         self.archive_button.clicked.connect(self.archive_pptx_videos)
-        self.external_import_button = QPushButton("导入外部视频并匹配")
+        self.external_import_button = QPushButton(tr("导入外部视频并匹配"))
         self.external_import_button.setToolTip(
-            "按哈希、时长、画面和音频指纹匹配；无匹配时新建视频，歧义时跳过。"
+            tr("按哈希、时长、画面和音频指纹匹配；无匹配时新建视频，歧义时跳过。")
         )
         self.external_import_button.clicked.connect(self.import_external_videos)
 
-        self.upgrade_button = QPushButton("高清回填 PPTX（另存）")
+        self.upgrade_button = QPushButton(tr("高清回填 PPTX（另存）"))
         self.upgrade_button.setToolTip(
-            "精确匹配后只替换包内视频；始终由你指定新文件或输出目录，不覆盖输入 PPTX。"
+            tr("精确匹配后只替换包内视频；始终由你指定新文件或输出目录，不覆盖输入 PPTX。")
         )
         self.upgrade_button.clicked.connect(self.upgrade_pptx)
         self.workflow_action_targets: list[tuple[Any, QPushButton]] = []
         for label, button in (
-            ("归档 PPTX 视频", self.archive_button),
-            ("导入外部视频并匹配", self.external_import_button),
-            ("高清回填 PPTX（另存）", self.upgrade_button),
+            (tr("归档 PPTX 视频"), self.archive_button),
+            (tr("导入外部视频并匹配"), self.external_import_button),
+            (tr("高清回填 PPTX（另存）"), self.upgrade_button),
         ):
             action = self.workflow_menu.addAction(label)
             action.triggered.connect(button.click)
             self.workflow_action_targets.append((action, button))
         self.workflow_menu.addSeparator()
-        settings_action = self.workflow_menu.addAction("展开 / 收起入库设置")
+        settings_action = self.workflow_menu.addAction(tr("展开 / 收起入库设置"))
         settings_action.triggered.connect(self._toggle_workflow_settings)
         self.workflow_menu.aboutToShow.connect(self._sync_workflow_actions)
         self.workflow_settings.hide()
@@ -1863,10 +1864,10 @@ class MainWindow(QMainWindow):
         )
 
     def _build_library_panel(self) -> QGroupBox:
-        box = QGroupBox("视频源与已知版本")
+        box = QGroupBox(tr("视频源与已知版本"))
         layout = QVBoxLayout(box)
         self.library_empty = QLabel(
-            "先新建或打开一个视频库\n\n可从 PPTX 提取，或导入外部视频自动匹配"
+            tr("先新建或打开一个视频库\n\n可从 PPTX 提取，或导入外部视频自动匹配")
         )
         self.library_empty.setObjectName("emptyState")
         self.library_empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -1874,13 +1875,13 @@ class MainWindow(QMainWindow):
         self.video_tree = QTreeWidget()
         self.video_tree.setHeaderLabels(
             [
-                "视频族 / 版本",
-                "分辨率",
-                "时长",
-                "大小",
-                "哈希数",
-                "关联状态",
-                "文件位置",
+                tr("视频族 / 版本"),
+                tr("分辨率"),
+                tr("时长"),
+                tr("大小"),
+                tr("哈希数"),
+                tr("关联状态"),
+                tr("文件位置"),
             ]
         )
         self.video_tree.setColumnWidth(0, 280)
@@ -1896,7 +1897,7 @@ class MainWindow(QMainWindow):
         self.video_tree_viewport.setAcceptDrops(True)
         self.video_tree_viewport.installEventFilter(self)
         self.video_tree.setToolTip(
-            "可把视频拖到这里自动匹配；拖入不会修改已有视频族或 PPTX 关联。"
+            tr("可把视频拖到这里自动匹配；拖入不会修改已有视频族或 PPTX 关联。")
         )
         self.video_tree.itemSelectionChanged.connect(self._update_action_states)
         self.video_tree.itemSelectionChanged.connect(self._update_detail_drawer)
@@ -1958,126 +1959,126 @@ class MainWindow(QMainWindow):
         version_row = QHBoxLayout(self.library_action_row)
         version_row.setContentsMargins(0, 0, 0, 0)
         version_row.setSpacing(6)
-        self.preview_button = QPushButton("播放")
-        self.preview_button.setToolTip("在右侧详情面板播放；双击列表项也可播放。")
+        self.preview_button = QPushButton(tr("播放"))
+        self.preview_button.setToolTip(tr("在右侧详情面板播放；双击列表项也可播放。"))
         self.preview_button.clicked.connect(self.preview_selected)
-        self.rename_button = QPushButton("重命名")
+        self.rename_button = QPushButton(tr("重命名"))
         self.rename_button.clicked.connect(self.rename_selected)
         self.rename_button.setToolTip(
-            "选中视频族时同步重命名高清源；选中具体版本时只修改该文件名。"
+            tr("选中视频族时同步重命名高清源；选中具体版本时只修改该文件名。")
         )
-        self.move_button = QPushButton("移动文件")
+        self.move_button = QPushButton(tr("移动文件"))
         self.move_button.clicked.connect(self.move_selected_variant)
         self.move_button.setToolTip(
-            "选中视频族时移动全部版本并更新库内分类；选中具体版本时只移动该文件。"
+            tr("选中视频族时移动全部版本并更新库内分类；选中具体版本时只移动该文件。")
         )
-        self.import_button = QPushButton("添加版本")
+        self.import_button = QPushButton(tr("添加版本"))
         self.import_button.clicked.connect(self.import_version)
         self.import_button.setToolTip(
-            "把外部高清、重编码或改名视频加入当前视频族；"
-            "会先核对时长、画面和音频指纹，不安全时拒绝。"
+            tr("把外部高清、重编码或改名视频加入当前视频族；") +
+            tr("会先核对时长、画面和音频指纹，不安全时拒绝。")
         )
-        self.activate_button = QPushButton("设为高清源")
+        self.activate_button = QPushButton(tr("设为高清源"))
         self.activate_button.clicked.connect(self.set_selected_source_variant)
         self.activate_button.setToolTip(
-            "将选中版本设为以后高清回填 PPTX 使用的权威源。"
+            tr("将选中版本设为以后高清回填 PPTX 使用的权威源。")
         )
-        self.review_button = QPushButton("核实版本")
+        self.review_button = QPushButton(tr("核实版本"))
         self.review_button.setObjectName("primaryAction")
         self.review_button.clicked.connect(self.review_selected_family)
         self.review_button.setToolTip(
-            "只核实当前视频族及其跨族重复候选；比较画面、时长、音轨和分辨率，"
-            "确认后才会把冗余文件移到待清理。"
+            tr("只核实当前视频族及其跨族重复候选；比较画面、时长、音轨和分辨率，") +
+            tr("确认后才会把冗余文件移到待清理。")
         )
-        self.quarantine_button = QPushButton("隔离异常")
+        self.quarantine_button = QPushButton(tr("隔离异常"))
         self.quarantine_button.setToolTip(
-            "仅允许隔离未被引用、且不是高清源或当前版本的异常文件。"
+            tr("仅允许隔离未被引用、且不是高清源或当前版本的异常文件。")
         )
         self.quarantine_button.clicked.connect(self.quarantine_selected_abnormal)
-        self.merge_button = QPushButton("归并视频")
+        self.merge_button = QPushButton(tr("归并视频"))
         self.merge_button.clicked.connect(self.merge_selected_family)
         self.merge_button.setToolTip(
-            "分析所选视频并按相似度显示候选封面；确认后合并视频族及全部 PPTX 关联。"
+            tr("分析所选视频并按相似度显示候选封面；确认后合并视频族及全部 PPTX 关联。")
         )
-        self.ai_button = QPushButton("AI 整理建议")
+        self.ai_button = QPushButton(tr("AI 整理建议"))
         self.ai_button.clicked.connect(self.request_ai_suggestion)
         self.ai_button.setToolTip(
-            "先用代码规则筛选候选，再由 AI 建议同源归并、主视频和命名；"
-            "视觉模型可额外参考三帧联系图，不会自动修改视频库。"
+            tr("先用代码规则筛选候选，再由 AI 建议同源归并、主视频和命名；") +
+            tr("视觉模型可额外参考三帧联系图，不会自动修改视频库。")
         )
-        self.relink_button = QPushButton("查找丢失")
+        self.relink_button = QPushButton(tr("查找丢失"))
         self.relink_button.setToolTip(
-            "在你选择的目录中按哈希重新定位缺失视频，并恢复库内路径关联。"
+            tr("在你选择的目录中按哈希重新定位缺失视频，并恢复库内路径关联。")
         )
         self.relink_button.clicked.connect(self.relink_missing)
-        self.cleanup_button = QPushButton("整理视频库")
+        self.cleanup_button = QPushButton(tr("整理视频库"))
         self.cleanup_button.setToolTip(
-            "扫描库内重复版本：并排评估 SSIM、时长、音轨与分辨率，"
-            "由你确认保留项后把冗余文件移到待清理目录。"
+            tr("扫描库内重复版本：并排评估 SSIM、时长、音轨与分辨率，") +
+            tr("由你确认保留项后把冗余文件移到待清理目录。")
         )
         self.cleanup_button.clicked.connect(self.start_cleanup_scan)
-        self.pending_button = QPushButton("待清理 (0)")
+        self.pending_button = QPushButton(tr("待清理 (0)"))
         self.pending_button.setToolTip(
-            "查看整理后移入待清理目录的文件，可继续核对或恢复。"
+            tr("查看整理后移入待清理目录的文件，可继续核对或恢复。")
         )
         self.pending_button.clicked.connect(self.show_pending_cleanup)
 
-        self.more_actions_button = QPushButton("更多操作")
+        self.more_actions_button = QPushButton(tr("更多操作"))
         self.more_actions_button.setToolTip(
-            "收纳归并、文件恢复、异常处理和导入导出等低频操作。"
+            tr("收纳归并、文件恢复、异常处理和导入导出等低频操作。")
         )
         self.more_actions_menu = QMenu(self.more_actions_button)
         self.more_actions_menu.setToolTipsVisible(True)
         self.more_action_targets: list[tuple[Any, QPushButton]] = []
 
-        self.more_actions_menu.addSection("核对与归并")
-        action = self.more_actions_menu.addAction("AI 整理建议")
+        self.more_actions_menu.addSection(tr("核对与归并"))
+        action = self.more_actions_menu.addAction(tr("AI 整理建议"))
         action.triggered.connect(self.ai_button.click)
         self.more_action_targets.append((action, self.ai_button))
-        action = self.more_actions_menu.addAction("归并视频")
+        action = self.more_actions_menu.addAction(tr("归并视频"))
         action.triggered.connect(self.merge_button.click)
         self.more_action_targets.append((action, self.merge_button))
 
-        self.more_actions_menu.addSection("版本管理")
-        action = self.more_actions_menu.addAction("设为高清源")
+        self.more_actions_menu.addSection(tr("版本管理"))
+        action = self.more_actions_menu.addAction(tr("设为高清源"))
         action.triggered.connect(self.activate_button.click)
         self.more_action_targets.append((action, self.activate_button))
 
-        self.more_actions_menu.addSection("文件与恢复")
+        self.more_actions_menu.addSection(tr("文件与恢复"))
         for label, button in (
-            ("重命名", self.rename_button),
-            ("移动文件", self.move_button),
-            ("查找丢失", self.relink_button),
+            (tr("重命名"), self.rename_button),
+            (tr("移动文件"), self.move_button),
+            (tr("查找丢失"), self.relink_button),
         ):
             action = self.more_actions_menu.addAction(label)
             action.triggered.connect(button.click)
             self.more_action_targets.append((action, button))
 
-        self.more_actions_menu.addSection("异常处理")
-        action = self.more_actions_menu.addAction("隔离异常")
+        self.more_actions_menu.addSection(tr("异常处理"))
+        action = self.more_actions_menu.addAction(tr("隔离异常"))
         action.triggered.connect(self.quarantine_button.click)
         self.more_action_targets.append((action, self.quarantine_button))
 
-        self.more_actions_menu.addSection("库维护")
+        self.more_actions_menu.addSection(tr("库维护"))
         for label, button in (
-            ("整理视频库", self.cleanup_button),
-            ("待清理", self.pending_button),
+            (tr("整理视频库"), self.cleanup_button),
+            (tr("待清理"), self.pending_button),
         ):
             action = self.more_actions_menu.addAction(label)
             action.triggered.connect(button.click)
             self.more_action_targets.append((action, button))
 
-        self.more_actions_menu.addSection("导出")
+        self.more_actions_menu.addSection(tr("导出"))
         self.import_hash_catalog_action = self.more_actions_menu.addAction(
-            "导入哈希目录"
+            tr("导入哈希目录")
         )
         self.import_hash_catalog_action.triggered.connect(self.import_hash_catalog)
         self.export_hash_catalog_action = self.more_actions_menu.addAction(
-            "导出哈希目录"
+            tr("导出哈希目录")
         )
         self.export_hash_catalog_action.triggered.connect(self.export_hash_catalog)
         self.export_associations_action = self.more_actions_menu.addAction(
-            "导出关联记录"
+            tr("导出关联记录")
         )
         self.export_associations_action.triggered.connect(
             self.export_association_records
@@ -2096,27 +2097,27 @@ class MainWindow(QMainWindow):
         filter_row = QHBoxLayout()
         filter_row.setContentsMargins(0, 0, 0, 0)
         self.library_filter_row.setLayout(filter_row)
-        self.library_search_label = QLabel("查找")
+        self.library_search_label = QLabel(tr("查找"))
         filter_row.addWidget(self.library_search_label)
         self.library_filter_input = QLineEdit()
-        self.library_filter_input.setPlaceholderText("筛选名称、路径或哈希")
+        self.library_filter_input.setPlaceholderText(tr("筛选名称、路径或哈希"))
         self.library_filter_input.setClearButtonEnabled(True)
         self.library_filter_input.setToolTip(
-            "即时筛选视频族及版本；可输入名称、目录、分辨率或哈希片段。"
+            tr("即时筛选视频族及版本；可输入名称、目录、分辨率或哈希片段。")
         )
         self.library_filter_input.setMinimumWidth(220)
         self.library_filter_input.setMaximumWidth(320)
         self.library_filter_input.textChanged.connect(self._apply_library_filter)
         filter_row.addWidget(self.library_filter_input)
         self.attention_filter_combo = QComboBox()
-        self.attention_filter_combo.addItem("全部视频", "all")
-        self.attention_filter_combo.addItem("待核对", "review")
-        self.attention_filter_combo.addItem("无 PPTX 关联", "unlinked")
-        self.attention_filter_combo.addItem("多版本", "multi")
-        self.attention_filter_combo.addItem("文件异常", "abnormal")
+        self.attention_filter_combo.addItem(tr("全部视频"), "all")
+        self.attention_filter_combo.addItem(tr("待核对"), "review")
+        self.attention_filter_combo.addItem(tr("无 PPTX 关联"), "unlinked")
+        self.attention_filter_combo.addItem(tr("多版本"), "multi")
+        self.attention_filter_combo.addItem(tr("文件异常"), "abnormal")
         self.attention_filter_combo.setToolTip(
-            "无关联可能是手工导入素材，多版本可能是主动保留候选；"
-            "筛选只用于核对，不会修改视频库。"
+            tr("无关联可能是手工导入素材，多版本可能是主动保留候选；") +
+            tr("筛选只用于核对，不会修改视频库。")
         )
         self.attention_filter_combo.setMinimumWidth(120)
         self.attention_filter_combo.setMaximumWidth(160)
@@ -2131,33 +2132,33 @@ class MainWindow(QMainWindow):
         self.library_stats_group.setExclusive(True)
         self.library_stat_buttons: dict[str, QPushButton] = {}
         stat_definitions = (
-            ("all", "全部", "显示全部视频族；选择具体版本后可播放或设为高清源"),
+            ("all", tr("全部"), tr("显示全部视频族；选择具体版本后可播放或设为高清源")),
             (
                 "review",
-                "待核对",
-                "无关联、多版本或文件异常的视频族去重并集；再按子类筛选处理",
+                tr("待核对"),
+                tr("无关联、多版本或文件异常的视频族去重并集；再按子类筛选处理"),
             ),
             (
                 "unlinked",
-                "无关联",
-                "没有 PPTX 引用的视频族；独立素材可保留，重复内容用“归并视频”",
+                tr("无关联"),
+                tr("没有 PPTX 引用的视频族；独立素材可保留，重复内容用“归并视频”"),
             ),
             (
                 "multi",
-                "多版本",
-                "包含多个清晰度或编码版本的视频族；用“整理视频库”安全保留最佳版本",
+                tr("多版本"),
+                tr("包含多个清晰度或编码版本的视频族；用“整理视频库”安全保留最佳版本"),
             ),
             (
                 "abnormal",
-                "文件异常",
-                "库内文件缺失、不可读或探测失败；选择异常版本后用“隔离异常”",
+                tr("文件异常"),
+                tr("库内文件缺失、不可读或探测失败；选择异常版本后用“隔离异常”"),
             ),
         )
         for key, title, tooltip in stat_definitions:
             button = QPushButton(f"{title} 0")
             button.setObjectName("statFilter")
             button.setCheckable(True)
-            button.setToolTip(f"{tooltip}。点击只筛选列表，不会修改视频库。")
+            button.setToolTip(f"{tooltip}{tr('。点击只筛选列表，不会修改视频库。')}")
             button.clicked.connect(
                 lambda _checked=False, name=key: self._filter_library_by_stat(name)
             )
@@ -2166,11 +2167,11 @@ class MainWindow(QMainWindow):
             filter_row.addWidget(button)
         self.library_stat_buttons["all"].setChecked(True)
 
-        self.library_version_label = QLabel("0 版本")
+        self.library_version_label = QLabel(tr("0 版本"))
         self.library_version_label.setObjectName("statMeta")
         self.library_version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         filter_row.addWidget(self.library_version_label)
-        self.library_stats_label = QLabel("显示 0/0")
+        self.library_stats_label = QLabel(tr("显示 0/0"))
         self.library_stats_label.setObjectName("statMeta")
         self.library_stats_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         filter_row.addWidget(self.library_stats_label)
@@ -2222,7 +2223,7 @@ class MainWindow(QMainWindow):
         assert self.project is not None
         default = self.project.root / "video-hash-catalog.json"
         output, _ = QFileDialog.getSaveFileName(
-            self, "导出视频哈希目录", str(default), "JSON (*.json)"
+            self, tr("导出视频哈希目录"), str(default), "JSON (*.json)"
         )
         if not output:
             return
@@ -2232,16 +2233,16 @@ class MainWindow(QMainWindow):
                 encoding="utf-8",
             )
         except OSError as exc:
-            self.show_error(f"无法导出哈希目录：{exc}")
+            self.show_error(f"{tr('无法导出哈希目录：')}{exc}")
             return
-        self.append_log(f"已导出视频哈希目录：{output}")
+        self.append_log(f"{tr('已导出视频哈希目录：')}{output}")
 
     def import_hash_catalog(self) -> None:
         if not self.require_project():
             return
         assert self.project is not None
         source, _ = QFileDialog.getOpenFileName(
-            self, "导入视频哈希目录", str(self.project.root), "JSON (*.json)"
+            self, tr("导入视频哈希目录"), str(self.project.root), "JSON (*.json)"
         )
         if not source:
             return
@@ -2250,16 +2251,16 @@ class MainWindow(QMainWindow):
                 json.loads(Path(source).read_text(encoding="utf-8"))
             )
         except (OSError, ValueError, json.JSONDecodeError, RuntimeError) as exc:
-            self.show_error(f"无法导入哈希目录：{exc}")
+            self.show_error(f"{tr('无法导入哈希目录：')}{exc}")
             return
         self.refresh_views()
         QMessageBox.information(
             self,
-            "哈希目录已合并",
+            tr("哈希目录已合并"),
             (
-                f"匹配视频族 {report['matched']}，新增哈希 {report['added']}；"
-                f"无本地锚点 {report['skipped']}，冲突 {report['conflicts']}。\n"
-                "未导入媒体文件，也未自动归并视频族。"
+                f"{tr('匹配视频族 ')}{report['matched']}{tr('，新增哈希 ')}{report['added']}{tr('；')}" +
+                f"{tr('无本地锚点 ')}{report['skipped']}{tr('，冲突 ')}{report['conflicts']}{tr('。')}\n" +
+                tr("未导入媒体文件，也未自动归并视频族。")
             ),
         )
 
@@ -2269,7 +2270,7 @@ class MainWindow(QMainWindow):
         assert self.project is not None
         default = self.project.root / "video-associations.json"
         output, _ = QFileDialog.getSaveFileName(
-            self, "导出视频关联记录", str(default), "JSON (*.json)"
+            self, tr("导出视频关联记录"), str(default), "JSON (*.json)"
         )
         if not output:
             return
@@ -2279,9 +2280,9 @@ class MainWindow(QMainWindow):
                 encoding="utf-8",
             )
         except OSError as exc:
-            self.show_error(f"无法导出关联记录：{exc}")
+            self.show_error(f"{tr('无法导出关联记录：')}{exc}")
             return
-        self.append_log(f"已导出关联记录：{output}")
+        self.append_log(f"{tr('已导出关联记录：')}{output}")
 
     def _build_detail_drawer(self) -> None:
         self.detail_drawer = QFrame(self.library_panel)
@@ -2291,21 +2292,21 @@ class MainWindow(QMainWindow):
         drawer_layout.setSpacing(6)
 
         header = QHBoxLayout()
-        self.detail_title = QLabel("视频详情")
+        self.detail_title = QLabel(tr("视频详情"))
         self.detail_title.setObjectName("detailTitle")
         self.detail_title.setWordWrap(True)
-        close_button = QPushButton("关闭")
+        close_button = QPushButton(tr("关闭"))
         close_button.setFixedWidth(64)
         close_button.clicked.connect(self._close_detail_drawer)
         header.addWidget(self.detail_title, 1)
         header.addWidget(close_button, 0, Qt.AlignmentFlag.AlignTop)
         drawer_layout.addLayout(header)
 
-        self.detail_preview = ResponsiveVideoThumbnail("选择视频后显示封面")
+        self.detail_preview = ResponsiveVideoThumbnail(tr("选择视频后显示封面"))
         self.detail_preview.setObjectName("detailPreview")
         self.detail_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.detail_preview.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.detail_preview.setToolTip("点击放大封面；播放按钮可核对完整视频")
+        self.detail_preview.setToolTip(tr("点击放大封面；播放按钮可核对完整视频"))
         self.detail_preview.clicked.connect(self._show_detail_preview)
         self.detail_video = QVideoWidget()
         self.detail_video.setObjectName("detailVideo")
@@ -2364,9 +2365,9 @@ class MainWindow(QMainWindow):
         metrics = QHBoxLayout()
         metrics.setSpacing(8)
         for title, attribute in (
-            ("分辨率", "detail_resolution"),
-            ("时长", "detail_duration"),
-            ("大小", "detail_size"),
+            (tr("分辨率"), "detail_resolution"),
+            (tr("时长"), "detail_duration"),
+            (tr("大小"), "detail_size"),
         ):
             card = QFrame()
             card.setObjectName("detailMetricCard")
@@ -2399,17 +2400,17 @@ class MainWindow(QMainWindow):
         drawer_layout.addStretch(1)
 
         actions = QHBoxLayout()
-        self.detail_play_button = QPushButton("播放")
+        self.detail_play_button = QPushButton(tr("播放"))
         self.detail_play_button.clicked.connect(self.preview_selected)
-        self.detail_ai_button = QPushButton("AI 建议")
+        self.detail_ai_button = QPushButton(tr("AI 建议"))
         self.detail_ai_button.clicked.connect(self.request_ai_suggestion)
         self.detail_ai_button.setToolTip(
-            "由 AI 建议当前视频的命名、分类和同源归并；不会自动修改视频库。"
+            tr("由 AI 建议当前视频的命名、分类和同源归并；不会自动修改视频库。")
         )
-        review_button = QPushButton("核对关联")
+        review_button = QPushButton(tr("核对关联"))
         review_button.setObjectName("primaryAction")
         review_button.clicked.connect(self.review_selected_family)
-        location_button = QPushButton("打开位置")
+        location_button = QPushButton(tr("打开位置"))
         location_button.clicked.connect(self.open_selected_location)
         actions.addWidget(self.detail_play_button)
         actions.addWidget(self.detail_ai_button)
@@ -2463,31 +2464,31 @@ class MainWindow(QMainWindow):
         duration = float(target.get("duration_sec") or 0)
         self.detail_title.setText(family["name"])
         self.detail_badge.setText(
-            "高清源" if target["id"] == family.get("source_variant_id") else "候选版本"
+            tr("高清源") if target["id"] == family.get("source_variant_id") else tr("候选版本")
         )
         self.detail_resolution.setText(f"{width}×{height}" if width and height else "—")
         self.detail_duration.setText(_format_duration(duration) if duration else "—")
         self.detail_size.setText(_format_mb(int(target.get("size_bytes") or 0)))
         self.detail_references.setText(
-            f"关联　{len(family['variants'])} 个版本 · {references} 个 PPTX 引用"
+            f"{tr('关联　')}{len(family['variants'])}{tr(' 个版本 · ')}{references}{tr(' 个 PPTX 引用')}"
         )
         path_text = str(target.get("path") or "—")
         digest = str(target.get("sha256") or "—")
-        self.detail_path.setText(f"文件位置  {path_text}")
+        self.detail_path.setText(f"{tr('文件位置  ')}{path_text}")
         self.detail_path.setToolTip(path_text)
-        self.detail_hash.setText(f"文件哈希  {digest[:16]}")
+        self.detail_hash.setText(f"{tr('文件哈希  ')}{digest[:16]}")
         self.detail_hash.setToolTip(digest)
         status = (
-            "媒体不可读"
+            tr("媒体不可读")
             if target.get("probe_error")
             else {
-                "available": "正常",
-                "missing": "文件丢失",
-                "modified": "文件已修改",
-            }.get(self.project.status(target), "未知")
+                "available": tr("正常"),
+                "missing": tr("文件丢失"),
+                "modified": tr("文件已修改"),
+            }.get(self.project.status(target), tr("未知"))
         )
-        self.detail_status.setText(f"状态　{status}")
-        self.detail_status.setProperty("healthy", status == "正常")
+        self.detail_status.setText(f"{tr('状态　')}{status}")
+        self.detail_status.setProperty("healthy", status == tr("正常"))
         self.detail_status.style().unpolish(self.detail_status)
         self.detail_status.style().polish(self.detail_status)
         source = self.project.root / str(target.get("path") or "")
@@ -2503,7 +2504,7 @@ class MainWindow(QMainWindow):
 
     def _sync_detail_play_button(self, state: QMediaPlayer.PlaybackState) -> None:
         self.detail_play_button.setText(
-            "暂停" if state == QMediaPlayer.PlaybackState.PlayingState else "播放"
+            tr("暂停") if state == QMediaPlayer.PlaybackState.PlayingState else tr("播放")
         )
 
     def _detail_duration_changed(self, duration: int) -> None:
@@ -2543,7 +2544,7 @@ class MainWindow(QMainWindow):
         self.detail_media_stack.setCurrentWidget(self.detail_preview)
         self.detail_seek_bar.hide()
         self._reset_detail_seek_bar()
-        self.show_error(f"无法在窗口内播放该视频：{message}")
+        self.show_error(f"{tr('无法在窗口内播放该视频：')}{message}")
 
     def _show_detail_preview(self) -> None:
         if self.project is None:
@@ -2553,12 +2554,12 @@ class MainWindow(QMainWindow):
             return
         target = variant or self.project.source_variant(family)
         dialog = QDialog(self)
-        dialog.setWindowTitle(f"{family['name']} · 封面预览")
+        dialog.setWindowTitle(f"{family['name']}{tr(' · 封面预览')}")
         dialog.setMinimumSize(720, 480)
         dialog.resize(900, 600)
         dialog.setStyleSheet(MEDIA_MANAGER_STYLESHEET)
         layout = QVBoxLayout(dialog)
-        preview = ResponsiveVideoThumbnail("正在生成封面")
+        preview = ResponsiveVideoThumbnail(tr("正在生成封面"))
         preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         preview.setStyleSheet(
             "background:#0b1017;border:1px solid #334155;border-radius:10px;"
@@ -2666,9 +2667,9 @@ class MainWindow(QMainWindow):
             self.library_empty.setVisible(visible_families == 0)
             if visible_families == 0:
                 self.library_empty.setText(
-                    "没有符合当前条件的视频\n\n清除查找文字，或切换为“全部视频”"
+                    tr("没有符合当前条件的视频\n\n清除查找文字，或切换为“全部视频”")
                 )
-        self.library_stats_label.setText(f"显示 {visible_families}/{total_families}")
+        self.library_stats_label.setText(f"{tr('显示 ')}{visible_families}/{total_families}")
         self._update_action_states()
 
     def _filter_library_by_stat(self, filter_name: str) -> None:
@@ -2687,15 +2688,15 @@ class MainWindow(QMainWindow):
     ) -> None:
         compact = getattr(self, "_compact_layout", False)
         counts = {
-            "all": ("全部", family_count),
-            "review": ("待核" if compact else "待核对", review_count),
-            "unlinked": ("无关联", unlinked_count),
-            "multi": ("多版" if compact else "多版本", multi_count),
-            "abnormal": ("异常" if compact else "文件异常", abnormal_count),
+            "all": (tr("全部"), family_count),
+            "review": (tr("待核") if compact else tr("待核对"), review_count),
+            "unlinked": (tr("无关联"), unlinked_count),
+            "multi": (tr("多版") if compact else tr("多版本"), multi_count),
+            "abnormal": (tr("异常") if compact else tr("文件异常"), abnormal_count),
         }
         for key, (title, count) in counts.items():
             self.library_stat_buttons[key].setText(f"{title} {count}")
-        self.library_version_label.setText(f"{variant_count} 版本")
+        self.library_version_label.setText(f"{variant_count}{tr(' 版本')}")
 
     def _sorted_families(self) -> list[dict[str, Any]]:
         assert self.project is not None
@@ -2810,10 +2811,10 @@ class MainWindow(QMainWindow):
         self.ai_button.setEnabled(ai_enabled)
         self.detail_ai_button.setEnabled(ai_enabled)
         ai_tooltip = (
-            "先用代码规则筛选候选，再由 AI 建议同源归并、主视频和命名；"
-            "视觉模型可额外参考三帧联系图，不会自动修改视频库。"
+            tr("先用代码规则筛选候选，再由 AI 建议同源归并、主视频和命名；") +
+            tr("视觉模型可额外参考三帧联系图，不会自动修改视频库。")
             if ai_configured
-            else "请先点击顶栏齿轮配置并验证 AI；未配置时视频库功能不受影响。"
+            else tr("请先点击顶栏齿轮配置并验证 AI；未配置时视频库功能不受影响。")
         )
         self.ai_button.setToolTip(ai_tooltip)
         self.detail_ai_button.setToolTip(ai_tooltip)
@@ -2842,7 +2843,7 @@ class MainWindow(QMainWindow):
         )
 
     def choose_new_project(self) -> None:
-        directory = QFileDialog.getExistingDirectory(self, "选择视频库文件夹")
+        directory = QFileDialog.getExistingDirectory(self, tr("选择视频库文件夹"))
         if not directory:
             return
         try:
@@ -2852,7 +2853,7 @@ class MainWindow(QMainWindow):
             self.show_error(str(exc))
 
     def choose_open_project(self) -> None:
-        directory = QFileDialog.getExistingDirectory(self, "打开视频库")
+        directory = QFileDialog.getExistingDirectory(self, tr("打开视频库"))
         if directory:
             self.open_project(Path(directory))
 
@@ -2868,28 +2869,28 @@ class MainWindow(QMainWindow):
         assert self.project is not None
         self.settings.setValue("video_manager/last_project", str(self.project.root))
         recovered = self.project.recovered_from_backup
-        warning = "  ·  ⚠ 已从备份恢复" if recovered else ""
+        warning = tr("  ·  ⚠ 已从备份恢复") if recovered else ""
         project_path = str(self.project.root)
         if len(project_path) > 72:
             project_path = f"…/{Path(*self.project.root.parts[-3:])}"
         self.project_label.setText(
-            f"当前视频库：{self.project.data['name']}{warning}  ·  {project_path}"
+            f"{tr('当前视频库：')}{self.project.data['name']}{warning}{tr('  ·  ')}{project_path}"
         )
         self.project_label.setToolTip(
-            f"视频库目录：{self.project.root}\n"
-            "库内保存：video-project.json、media、_cleanup、reports\n"
-            f"应用日志：{log_directory()}\n"
-            f"全局偏好：{self.settings.fileName()}"
+            f"{tr('视频库目录：')}{self.project.root}\n" +
+            tr("库内保存：video-project.json、media、_cleanup、reports\n") +
+            f"{tr('应用日志：')}{log_directory()}\n" +
+            f"{tr('全局偏好：')}{self.settings.fileName()}"
         )
-        self.append_log(f"已打开视频库：{self.project.root}", reveal=False)
+        self.append_log(f"{tr('已打开视频库：')}{self.project.root}", reveal=False)
         if recovered:
             message = (
-                "主视频库清单损坏或不可读，程序已使用最近的有效备份恢复。"
-                "建议立即检查视频状态。"
+                tr("主视频库清单损坏或不可读，程序已使用最近的有效备份恢复。") +
+                tr("建议立即检查视频状态。")
             )
-            self.append_log(f"警告：{message} {self.project.recovery_detail}")
+            self.append_log(f"{tr('警告：')}{message} {self.project.recovery_detail}")
             if report_recovery:
-                QMessageBox.warning(self, "视频库已从备份恢复", message)
+                QMessageBox.warning(self, tr("视频库已从备份恢复"), message)
         self.refresh_views()
 
     def on_activated(self) -> None:
@@ -2904,7 +2905,7 @@ class MainWindow(QMainWindow):
             self.project.reload()
             self.refresh_views()
         except Exception as exc:
-            self.append_log(f"项目刷新失败：{exc}")
+            self.append_log(f"{tr('项目刷新失败：')}{exc}")
 
     def run_library_health(self, *, verify_hashes: bool = False) -> None:
         if not self.require_project():
@@ -2913,9 +2914,9 @@ class MainWindow(QMainWindow):
         def operation(progress, cancelled):
             assert self.project is not None
             progress(
-                "正在完整核对全部视频哈希"
+                tr("正在完整核对全部视频哈希")
                 if verify_hashes
-                else "正在检查视频库清单与文件状态"
+                else tr("正在检查视频库清单与文件状态")
             )
             if cancelled():
                 raise RuntimeError("Operation cancelled")
@@ -2927,7 +2928,7 @@ class MainWindow(QMainWindow):
             )
 
         self.run_operation(
-            "正在进行视频库完整哈希复核" if verify_hashes else "正在进行视频库体检",
+            tr("正在进行视频库完整哈希复核") if verify_hashes else tr("正在进行视频库体检"),
             operation,
             self._library_health_finished,
         )
@@ -2935,7 +2936,7 @@ class MainWindow(QMainWindow):
     def _library_health_finished(self, report: dict[str, Any]) -> None:
         stats = report["stats"]
         self.append_log(
-            "视频库体检完成：错误 {}，警告 {}，历史信息 {}，失效输出记录 {}。".format(
+            tr("视频库体检完成：错误 {}，警告 {}，历史信息 {}，失效输出记录 {}。").format(
                 stats["errors"],
                 stats["warnings"],
                 stats["info"],
@@ -2960,12 +2961,12 @@ class MainWindow(QMainWindow):
             self.input_summary.setToolTip(
                 "\n".join(str(path) for path in self.input_paths[:10])
                 + (
-                    f"\n另有 {len(self.input_paths) - 10} 个文件"
+                    f"\n{tr('另有 ')}{len(self.input_paths) - 10}{tr(' 个文件')}"
                     if len(self.input_paths) > 10
                     else ""
                 )
             )
-            self.append_log(f"已接收 {len(self.input_paths)} 个 PPTX。", reveal=False)
+            self.append_log(f"{tr('已接收 ')}{len(self.input_paths)}{tr(' 个 PPTX。')}", reveal=False)
 
     def _refresh_workflow_files(self) -> None:
         while self.workflow_files_layout.count():
@@ -2982,14 +2983,14 @@ class MainWindow(QMainWindow):
             name = path.name if len(path.name) <= 34 else f"{path.stem[:25]}….pptx"
             chip = QPushButton(f"▣  {name}  ×")
             chip.setObjectName("inputChip")
-            chip.setToolTip(f"{path}\n点击从当前工作流移除")
+            chip.setToolTip(f"{path}\n{tr('点击从当前工作流移除')}")
             chip.clicked.connect(
                 lambda _checked=False, value=path: self._remove_input(value)
             )
             self.workflow_files_layout.addWidget(chip)
             self.workflow_chip_widgets.append(chip)
         if len(self.input_paths) > 2:
-            remaining = QPushButton(f"还有 {len(self.input_paths) - 2} 个")
+            remaining = QPushButton(f"{tr('还有 ')}{len(self.input_paths) - 2}{tr(' 个')}")
             remaining.setObjectName("inputChip")
             menu = QMenu(remaining)
             for path in self.input_paths[2:]:
@@ -3002,7 +3003,7 @@ class MainWindow(QMainWindow):
             self.workflow_files_layout.addWidget(remaining)
             self.workflow_chip_widgets.append(remaining)
         self.workflow_files_layout.addStretch(1)
-        clear_button = QPushButton("清空")
+        clear_button = QPushButton(tr("清空"))
         clear_button.clicked.connect(self.clear_input_paths)
         self.workflow_files_layout.addWidget(clear_button)
         self.workflow_chip_widgets.append(clear_button)
@@ -3133,17 +3134,17 @@ class MainWindow(QMainWindow):
 
     def choose_input_pptx(self) -> None:
         selected, _ = QFileDialog.getOpenFileNames(
-            self, "选择 PPTX", "", "PowerPoint (*.pptx)"
+            self, tr("选择 PPTX"), "", "PowerPoint (*.pptx)"
         )
         if selected:
             self.set_files(Path(path) for path in selected)
 
     def clear_input_paths(self) -> None:
         self.input_paths = []
-        self.input_summary.setText("可拖入或多选 PPTX，批量归档或高清回填")
+        self.input_summary.setText(tr("可拖入或多选 PPTX，批量归档或高清回填"))
         self.input_summary.setToolTip(
-            "视频源独立入库，PPTX 只记录形状关联。"
-            "匹配依据哈希和内容特征，改文件名或目录不受影响。"
+            tr("视频源独立入库，PPTX 只记录形状关联。") +
+            tr("匹配依据哈希和内容特征，改文件名或目录不受影响。")
         )
         self._refresh_workflow_files()
         self._update_action_states()
@@ -3165,12 +3166,12 @@ class MainWindow(QMainWindow):
     def refresh_views(self) -> None:
         self.video_tree.clear()
         if self.project is None:
-            self.pending_button.setText("待清理 (0)")
+            self.pending_button.setText(tr("待清理 (0)"))
             self._set_library_stat_counts(0, 0, 0, 0, 0, 0)
-            self.library_stats_label.setText("显示 0/0")
+            self.library_stats_label.setText(tr("显示 0/0"))
             self.video_tree.hide()
             self.library_empty.setText(
-                "先新建或打开一个视频库\n\n可从 PPTX 提取，或导入外部视频自动匹配"
+                tr("先新建或打开一个视频库\n\n可从 PPTX 提取，或导入外部视频自动匹配")
             )
             self.library_empty.show()
             self._update_action_states()
@@ -3179,13 +3180,13 @@ class MainWindow(QMainWindow):
             pending_count = len(self.project.pending_cleanup())
         except Exception:
             pending_count = 0
-        self.pending_button.setText(f"待清理 ({pending_count})")
+        self.pending_button.setText(f"{tr('待清理 (')}{pending_count})")
         has_families = bool(self.project.families())
         self.video_tree.setVisible(has_families)
         self.library_empty.setVisible(not has_families)
         if not has_families:
             self.library_empty.setText(
-                "视频库还是空的\n\n可归档 PPTX 高清视频，或导入外部视频创建视频族"
+                tr("视频库还是空的\n\n可归档 PPTX 高清视频，或导入外部视频创建视频族")
             )
         reference_counts: dict[str, int] = {}
         for deck in self.project.decks():
@@ -3236,12 +3237,12 @@ class MainWindow(QMainWindow):
             family_item = QTreeWidgetItem(
                 [
                     family["name"],
-                    f"{width}×{height}" if width and height else "未识别",
-                    _format_duration(duration) if duration else "未识别",
+                    f"{width}×{height}" if width and height else tr("未识别"),
+                    _format_duration(duration) if duration else tr("未识别"),
                     f"{source['size_bytes'] / 1024 / 1024:.1f} MB",
-                    f"{len(family.get('known_hashes', []))} 个",
-                    f"{len(family['variants'])} 版本 · "
-                    f"{reference_counts.get(family['id'], 0)} 引用",
+                    f"{len(family.get('known_hashes', []))}{tr(' 个')}",
+                    f"{len(family['variants'])}{tr(' 版本 · ')}" +
+                    f"{reference_counts.get(family['id'], 0)}{tr(' 引用')}",
                     Path(source["path"]).parent.as_posix(),
                 ]
             )
@@ -3268,20 +3269,20 @@ class MainWindow(QMainWindow):
                 reverse=True,
             )
             for variant in variants:
-                marker = "高清源 · " if variant["id"] == source_id else "候选 · "
+                marker = tr("高清源 · ") if variant["id"] == source_id else tr("候选 · ")
                 width = variant.get("width", 0)
                 height = variant.get("height", 0)
                 duration = variant.get("duration_sec", 0)
-                resolution = f"{width}×{height}" if width and height else "未识别"
-                duration_text = _format_duration(duration) if duration else "未识别"
+                resolution = f"{width}×{height}" if width and height else tr("未识别")
+                duration_text = _format_duration(duration) if duration else tr("未识别")
                 size = f"{variant['size_bytes'] / 1024 / 1024:.1f} MB"
                 status = (
-                    "媒体不可读"
+                    tr("媒体不可读")
                     if variant.get("probe_error")
                     else {
-                        "available": "正常",
-                        "missing": "丢失",
-                        "modified": "已修改",
+                        "available": tr("正常"),
+                        "missing": tr("丢失"),
+                        "modified": tr("已修改"),
                     }[variant_statuses[variant["id"]]]
                 )
                 child = QTreeWidgetItem(
@@ -3304,7 +3305,7 @@ class MainWindow(QMainWindow):
                 if origins:
                     child.setToolTip(
                         6,
-                        f"库内：{variant['path']}\n来源："
+                        f"{tr('库内：')}{variant['path']}\n{tr('来源：')}"
                         + "\n".join(str(path) for path in origins),
                     )
                 family_item.addChild(child)
@@ -3318,7 +3319,7 @@ class MainWindow(QMainWindow):
         paths = list(self.input_paths)
         if not paths:
             selected, _ = QFileDialog.getOpenFileNames(
-                self, "选择 PPTX", "", "PowerPoint (*.pptx)"
+                self, tr("选择 PPTX"), "", "PowerPoint (*.pptx)"
             )
             paths = [Path(path) for path in selected]
         if not paths:
@@ -3328,7 +3329,7 @@ class MainWindow(QMainWindow):
         try:
             normalize_library_category(category)
         except ValueError as exc:
-            self.show_error(f"入库分类无效：{exc}")
+            self.show_error(f"{tr('入库分类无效：')}{exc}")
             return
 
         def operation(progress, cancelled):
@@ -3346,15 +3347,15 @@ class MainWindow(QMainWindow):
             return results
 
         self.run_operation(
-            "正在提取并归档高清源视频",
+            tr("正在提取并归档高清源视频"),
             operation,
             self._archive_finished,
         )
 
     def _archive_finished(self, results: list[dict[str, Any]]) -> None:
         self.append_log(
-            "入库完成：登记 {} 份 PPTX，新增 {} 个视频族，复用 {} 个，"
-            "待确认高清候选 {} 个。".format(
+            tr("入库完成：登记 {} 份 PPTX，新增 {} 个视频族，复用 {} 个，") +
+            tr("待确认高清候选 {} 个。").format(
                 len({item["deck"]["id"] for item in results}),
                 sum(item["added"] for item in results),
                 sum(item["reused"] for item in results),
@@ -3369,7 +3370,7 @@ class MainWindow(QMainWindow):
         start = self.settings.value("video_manager/last_external_dir", "", str)
         selected, _ = QFileDialog.getOpenFileNames(
             self,
-            "导入外部视频",
+            tr("导入外部视频"),
             start,
             "Video files (*.mp4 *.mov *.m4v *.wmv *.avi *.mkv *.webm)",
         )
@@ -3388,13 +3389,13 @@ class MainWindow(QMainWindow):
             if path.is_file() and path.suffix.lower() in VIDEO_SUFFIXES
         ]
         if not paths:
-            self.show_error("没有可导入的受支持视频文件。")
+            self.show_error(tr("没有可导入的受支持视频文件。"))
             return
         category = self.category_input.text().strip()
         try:
             normalize_library_category(category)
         except ValueError as exc:
-            self.show_error(f"入库分类无效：{exc}")
+            self.show_error(f"{tr('入库分类无效：')}{exc}")
             return
         source_quality = str(self.source_quality_combo.currentData())
 
@@ -3404,7 +3405,7 @@ class MainWindow(QMainWindow):
             for index, path in enumerate(paths, start=1):
                 if cancelled():
                     raise RuntimeError("Operation cancelled")
-                progress(f"正在匹配外部视频 {index}/{len(paths)}：{path.name}")
+                progress(f"{tr('正在匹配外部视频 ')}{index}/{len(paths)}{tr('：')}{path.name}")
                 try:
                     result = self.project.import_external_video(
                         path,
@@ -3422,7 +3423,7 @@ class MainWindow(QMainWindow):
             return results
 
         self.run_operation(
-            "正在导入并匹配外部视频",
+            tr("正在导入并匹配外部视频"),
             operation,
             lambda results: self._review_external_imports(
                 results, source_quality, category
@@ -3467,7 +3468,7 @@ class MainWindow(QMainWindow):
             for index, (path, family_id, force_new) in enumerate(decisions, start=1):
                 if cancelled():
                     raise RuntimeError("Operation cancelled")
-                progress(f"正在应用人工匹配 {index}/{len(decisions)}：{path.name}")
+                progress(f"{tr('正在应用人工匹配 ')}{index}/{len(decisions)}{tr('：')}{path.name}")
                 try:
                     reviewed.append(
                         self.project.import_external_video(
@@ -3490,7 +3491,7 @@ class MainWindow(QMainWindow):
             return reviewed
 
         self.run_operation(
-            "正在保存人工确认的视频关联",
+            tr("正在保存人工确认的视频关联"),
             operation,
             lambda reviewed: self._external_import_finished([*completed, *reviewed]),
         )
@@ -3509,7 +3510,7 @@ class MainWindow(QMainWindow):
             )
         }
         self.append_log(
-            "外部视频导入完成：匹配 {}，新建 {}，已存在 {}，跳过 {}，失败 {}。".format(
+            tr("外部视频导入完成：匹配 {}，新建 {}，已存在 {}，跳过 {}，失败 {}。").format(
                 counts["matched"],
                 counts["created"],
                 counts["existing"],
@@ -3519,16 +3520,16 @@ class MainWindow(QMainWindow):
         )
         for item in results:
             if item["status"] in {"ambiguous", "suggested", "skipped"}:
-                self.append_log(f"已跳过，未导入：{item['source']}")
+                self.append_log(f"{tr('已跳过，未导入：')}{item['source']}")
             elif item["status"] == "failed":
-                self.append_log(f"失败：{item['source']}；{item['error']}")
+                self.append_log(f"{tr('失败：')}{item['source']}{tr('；')}{item['error']}")
             elif item["status"] == "matched" and not item.get("promoted"):
                 self.append_log(
-                    f"已加入候选版本：{item['source']} → {item['family_name']}；"
-                    "如需替换母版，请选择该版本后点击“设为高清源”。"
+                    f"{tr('已加入候选版本：')}{item['source']} → {item['family_name']}{tr('；')}" +
+                    tr("如需替换母版，请选择该版本后点击“设为高清源”。")
                 )
         if counts["ambiguous"] or counts["suggested"] or counts["failed"]:
-            self.show_error("部分视频未导入，详情见操作记录。")
+            self.show_error(tr("部分视频未导入，详情见操作记录。"))
 
     def upgrade_pptx(self) -> None:
         if not self.require_project():
@@ -3536,7 +3537,7 @@ class MainWindow(QMainWindow):
         paths = list(self.input_paths)
         if not paths:
             selected, _ = QFileDialog.getOpenFileNames(
-                self, "选择需要高清优化的 PPTX", "", "PowerPoint (*.pptx)"
+                self, tr("选择需要高清优化的 PPTX"), "", "PowerPoint (*.pptx)"
             )
             if not selected:
                 return
@@ -3565,7 +3566,7 @@ class MainWindow(QMainWindow):
                 raise
 
         self.run_operation(
-            "正在分析 PPTX 视频匹配",
+            tr("正在分析 PPTX 视频匹配"),
             operation,
             lambda analyses: self._review_pptx_upgrade(paths, analyses, review_root),
         )
@@ -3596,7 +3597,7 @@ class MainWindow(QMainWindow):
                         "source_path": str(source_path),
                         "source_sha256": variant["sha256"],
                         "resolution": (
-                            f"{int(variant.get('width') or 0)}×"
+                            f"{int(variant.get('width') or 0)}×" +
                             f"{int(variant.get('height') or 0)}"
                         ),
                         "width": int(variant.get("width") or 0),
@@ -3612,12 +3613,12 @@ class MainWindow(QMainWindow):
                 source = Path(analysis["source"])
                 items = analysis["items"]
                 if not items:
-                    self.append_log(f"未发现内嵌视频：{source}")
+                    self.append_log(f"{tr('未发现内嵌视频：')}{source}")
                     continue
                 dialog = PptxUpgradeReviewDialog(self, source, items, family_choices)
                 if dialog.exec() != QDialog.DialogCode.Accepted:
                     shutil.rmtree(review_root, ignore_errors=True)
-                    self.append_log("已取消高清回填，未修改视频库或 PPTX。")
+                    self.append_log(tr("已取消高清回填，未修改视频库或 PPTX。"))
                     return
                 source_overrides, source_remembered, source_kept = dialog.decisions()
                 overrides[source] = source_overrides
@@ -3635,7 +3636,7 @@ class MainWindow(QMainWindow):
                 f"{source.stem}_{BACKFILL_QUALITY_TIERS[tier_key]['suffix']}.pptx"
             )
             output, _ = QFileDialog.getSaveFileName(
-                self, "保存高清优化 PPTX", str(default), "PowerPoint (*.pptx)"
+                self, tr("保存高清优化 PPTX"), str(default), "PowerPoint (*.pptx)"
             )
             if not output:
                 shutil.rmtree(review_root, ignore_errors=True)
@@ -3643,7 +3644,7 @@ class MainWindow(QMainWindow):
             outputs = {source: Path(output)}
         else:
             directory = QFileDialog.getExistingDirectory(
-                self, "选择高清优化输出目录", str(paths[0].parent)
+                self, tr("选择高清优化输出目录"), str(paths[0].parent)
             )
             if not directory:
                 shutil.rmtree(review_root, ignore_errors=True)
@@ -3651,8 +3652,8 @@ class MainWindow(QMainWindow):
             outputs = {
                 source: Path(directory)
                 / (
-                    f"{source.stem}_"
-                    f"{BACKFILL_QUALITY_TIERS[tiers.get(source, DEFAULT_BACKFILL_TIER)]['suffix']}"
+                    f"{source.stem}_" +
+                    f"{BACKFILL_QUALITY_TIERS[tiers.get(source, DEFAULT_BACKFILL_TIER)]['suffix']}" +
                     ".pptx"
                 )
                 for source in paths
@@ -3675,7 +3676,7 @@ class MainWindow(QMainWindow):
             ]
 
         self.run_operation(
-            "正在匹配视频库并高清优化 PPTX",
+            tr("正在匹配视频库并高清优化 PPTX"),
             operation,
             lambda results: self._finish_reviewed_upgrade(results, review_root),
         )
@@ -3689,8 +3690,8 @@ class MainWindow(QMainWindow):
     def _upgrade_finished(self, results: list[dict[str, Any]]) -> None:
         generated = [item for item in results if item.get("output_pptx")]
         self.append_log(
-            "高清优化完成：生成 {} 个 PPTX，替换 {} 个视频，已是高清 {} 个，"
-            "保持当前 {} 个，固化压缩哈希 {} 个，未匹配 {} 个。".format(
+            tr("高清优化完成：生成 {} 个 PPTX，替换 {} 个视频，已是高清 {} 个，") +
+            tr("保持当前 {} 个，固化压缩哈希 {} 个，未匹配 {} 个。").format(
                 len(generated),
                 sum(item["matched"] for item in results),
                 sum(item.get("already_high_quality", 0) for item in results),
@@ -3701,7 +3702,7 @@ class MainWindow(QMainWindow):
         )
         manual_matched = sum(item.get("manual_matched", 0) for item in results)
         if manual_matched:
-            self.append_log(f"人工确认并回填 {manual_matched} 个视频。")
+            self.append_log(f"{tr('人工确认并回填 ')}{manual_matched}{tr(' 个视频。')}")
         labels = sorted(
             {
                 spec["label"]
@@ -3709,15 +3710,15 @@ class MainWindow(QMainWindow):
                 for spec in [
                     BACKFILL_QUALITY_TIERS.get(item.get("quality_tier") or "best")
                 ]
-                if spec and spec["label"] != "最佳"
+                if spec and spec["label"] != tr("最佳")
             }
         )
         if labels:
-            self.append_log(f"回填档位：{'、'.join(labels)}")
+            self.append_log(f"{tr('回填档位：')}{tr('、').join(labels)}")
         for item in generated:
-            self.append_log(f"输出：{item['output_pptx']}")
+            self.append_log(f"{tr('输出：')}{item['output_pptx']}")
         if not generated:
-            self.show_error("没有生成输出：视频均已是高清源，或没有安全匹配的视频。")
+            self.show_error(tr("没有生成输出：视频均已是高清源，或没有安全匹配的视频。"))
         self.clear_input_paths()
 
     def rename_selected(self) -> None:
@@ -3725,16 +3726,16 @@ class MainWindow(QMainWindow):
             return
         family, variant = self.selected_family_variant()
         if family is None:
-            self.show_error("请选择一个视频或版本。")
+            self.show_error(tr("请选择一个视频或版本。"))
             return
         current = Path(variant["path"]).stem if variant else family["name"]
-        value, ok = QInputDialog.getText(self, "改名", "新名称", text=current)
+        value, ok = QInputDialog.getText(self, tr("改名"), tr("新名称"), text=current)
         if not ok or not value.strip():
             return
         try:
             if variant:
                 self.run_operation(
-                    "正在重命名视频",
+                    tr("正在重命名视频"),
                     lambda _progress, _cancelled: self.project.rename_variant_file(
                         variant["id"], value
                     ),
@@ -3780,8 +3781,8 @@ class MainWindow(QMainWindow):
         if family is not None and variant is None:
             category, accepted = QInputDialog.getText(
                 self,
-                "移动整个视频族",
-                "库内分类目录（留空表示媒体根目录）：",
+                tr("移动整个视频族"),
+                tr("库内分类目录（留空表示媒体根目录）："),
                 text=family.get("category", ""),
             )
             if not accepted:
@@ -3792,20 +3793,20 @@ class MainWindow(QMainWindow):
                 self.show_error(str(exc))
                 return
             self.run_operation(
-                "正在移动视频族",
+                tr("正在移动视频族"),
                 lambda _progress, _cancelled: self.project.move_family(
                     family["id"], category
                 ),
             )
             return
         if variant is None:
-            self.show_error("请选择一个视频或具体版本。")
+            self.show_error(tr("请选择一个视频或具体版本。"))
             return
-        directory = QFileDialog.getExistingDirectory(self, "选择归档目录")
+        directory = QFileDialog.getExistingDirectory(self, tr("选择归档目录"))
         if not directory:
             return
         self.run_operation(
-            "正在移动视频",
+            tr("正在移动视频"),
             lambda _progress, _cancelled: self.project.move_variant(
                 variant["id"], Path(directory)
             ),
@@ -3816,18 +3817,18 @@ class MainWindow(QMainWindow):
             return
         family, _ = self.selected_family_variant()
         if family is None:
-            self.show_error("请选择要添加版本的视频。")
+            self.show_error(tr("请选择要添加版本的视频。"))
             return
         source, _ = QFileDialog.getOpenFileName(
             self,
-            "选择视频版本",
+            tr("选择视频版本"),
             "",
             "Video files (*.mp4 *.mov *.m4v *.wmv *.avi *.mkv *.webm)",
         )
         if not source:
             return
         self.run_operation(
-            "正在验证并添加视频版本",
+            tr("正在验证并添加视频版本"),
             lambda _progress, _cancelled: self.project.import_external_video(
                 Path(source),
                 source_quality=str(self.source_quality_combo.currentData()),
@@ -3840,15 +3841,15 @@ class MainWindow(QMainWindow):
             return
         _, variant = self.selected_family_variant()
         if variant is None:
-            self.show_error("请选择一个具体视频版本。")
+            self.show_error(tr("请选择一个具体视频版本。"))
             return
         try:
             warnings = self.project.compatibility_warnings(variant["id"])
             if warnings:
                 answer = QMessageBox.question(
                     self,
-                    "高清源兼容性提示",
-                    "\n".join(warnings) + "\n\n仍设为高清源吗？",
+                    tr("高清源兼容性提示"),
+                    "\n".join(warnings) + tr("\n\n仍设为高清源吗？"),
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                     QMessageBox.StandardButton.No,
                 )
@@ -3866,30 +3867,30 @@ class MainWindow(QMainWindow):
             self.ai_ignore_result = True
             if self.ai_worker is not None:
                 self.ai_worker.cancel()
-            self.ai_button.setText("已取消显示")
-            self.append_log("已取消显示本次 AI 建议；已发出的网络请求会在后台结束。")
+            self.ai_button.setText(tr("已取消显示"))
+            self.append_log(tr("已取消显示本次 AI 建议；已发出的网络请求会在后台结束。"))
             return
         if self.project is None:
             return
         family, variant = self.selected_family_variant()
         config = self._ai_config()
         if family is None or config is None:
-            self.show_error("请先在顶栏设置中配置支持图片输入的 AI。")
+            self.show_error(tr("请先在顶栏设置中配置支持图片输入的 AI。"))
             return
         privacy_key = f"ai/privacy_confirmed/{privacy_scope(config)}"
         if not self.settings.value(privacy_key, False, bool):
             sent_content = (
-                "三帧联系图、名称、规格、时长和大小"
+                tr("三帧联系图、名称、规格、时长和大小")
                 if config.vision_enabled
-                else "名称、规格、时长、大小与代码相似度（不发送视频画面）"
+                else tr("名称、规格、时长、大小与代码相似度（不发送视频画面）")
             )
             answer = QMessageBox.question(
                 self,
-                "AI 视频分析",
+                tr("AI 视频分析"),
                 (
-                    "将向已配置的 AI 服务发送代码筛选出的最多 6 个视频候选的"
-                    f"{sent_content}，不发送完整视频、PPTX "
-                    "或本地路径。是否继续？"
+                    tr("将向已配置的 AI 服务发送代码筛选出的最多 6 个视频候选的") +
+                    f"{sent_content}{tr('，不发送完整视频、PPTX ')}" +
+                    tr("或本地路径。是否继续？")
                 ),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
@@ -3934,7 +3935,7 @@ class MainWindow(QMainWindow):
                 if preview_path.is_file():
                     preview = preview_path
             label = (
-                f"{item_family['name']} · "
+                f"{item_family['name']}{tr(' · ')}" +
                 f"{item_variant.get('profile') or Path(path).suffix.lstrip('.')}"
             )
             item_names[item_variant["id"]] = label
@@ -3953,10 +3954,10 @@ class MainWindow(QMainWindow):
                         or 0
                     ),
                     "health": (
-                        "异常"
+                        tr("异常")
                         if item_variant.get("probe_error")
                         or self.project.status(item_variant) != "available"
-                        else "正常"
+                        else tr("正常")
                     ),
                     "code_similarity": code_similarity,
                     "preview_path": preview,
@@ -3971,7 +3972,7 @@ class MainWindow(QMainWindow):
                 "candidates"
             ]
         except Exception as exc:
-            self.append_log(f"AI 候选预筛失败，改用当前视频族：{exc}")
+            self.append_log(f"{tr('AI 候选预筛失败，改用当前视频族：')}{exc}")
             candidates = []
         for candidate in candidates:
             candidate_family = self.project.family(candidate["family_id"])
@@ -3981,15 +3982,15 @@ class MainWindow(QMainWindow):
             append_item(candidate_family, candidate_variant, candidate["score"])
         self.ai_item_names = item_names
         self.ai_button.setEnabled(True)
-        self.ai_button.setText("取消 AI 分析")
+        self.ai_button.setText(tr("取消 AI 分析"))
         self.detail_ai_button.setEnabled(False)
-        self.detail_ai_button.setText("分析中…")
-        self.append_log("AI 正在分析代码候选、视频联系图与规格…")
+        self.detail_ai_button.setText(tr("分析中…"))
+        self.append_log(tr("AI 正在分析代码候选、视频联系图与规格…"))
         self.log_hide_timer.stop()
         self.ai_thread = QThread(self)
         self.ai_worker = OperationWorker(
             lambda _message, cancelled: OpenAICompatibleClient(config).organize_media(
-                items, media_kind="视频", cancel_callback=cancelled
+                items, media_kind=tr("视频"), cancel_callback=cancelled
             )
         )
         self.ai_worker.moveToThread(self.ai_thread)
@@ -4008,14 +4009,14 @@ class MainWindow(QMainWindow):
         if self.ai_ignore_result:
             return
         if not isinstance(result, dict):
-            self._ai_failed("AI 返回结果无效。")
+            self._ai_failed(tr("AI 返回结果无效。"))
             return
         if self.project is None:
             return
         try:
             family = self.project.family(self.ai_target_family_id)
         except KeyError:
-            self.append_log("AI 建议对应的视频已不存在，结果已忽略。")
+            self.append_log(tr("AI 建议对应的视频已不存在，结果已忽略。"))
             return
         from pptx_tools.ai_review_dialog import AISuggestionDialog
 
@@ -4023,7 +4024,7 @@ class MainWindow(QMainWindow):
             self,
             result,
             {"suggested_name": family["name"]},
-            {"suggested_name": "名称"},
+            {"suggested_name": tr("名称")},
             self.ai_item_names,
         )
         applied: list[str] = []
@@ -4034,16 +4035,16 @@ class MainWindow(QMainWindow):
                     self.project.rename_family_and_source(
                         self.ai_target_family_id, values["suggested_name"]
                     )
-                    applied.append("名称")
+                    applied.append(tr("名称"))
                     self.refresh_views()
                 except Exception as exc:
                     self.show_error(str(exc))
         merged = self._review_ai_video_merge_groups(result.get("merge_groups") or [])
         if merged:
-            applied.append(f"归并 {merged} 个视频族")
+            applied.append(f"{tr('归并 ')}{merged}{tr(' 个视频族')}")
         self.append_log(
-            "AI 视频整理建议已完成"
-            + (f"，已应用：{'、'.join(applied)}。" if applied else "，未修改视频库。")
+            tr("AI 视频整理建议已完成")
+            + (f"{tr('，已应用：')}{tr('、').join(applied)}{tr('。')}" if applied else tr("，未修改视频库。"))
         )
         if self.ai_request_config is not None:
             from pptx_tools.app_logging import write_ai_audit_event
@@ -4085,16 +4086,16 @@ class MainWindow(QMainWindow):
                 )
                 answer = QMessageBox.question(
                     self,
-                    "核对 AI 视频归并建议",
+                    tr("核对 AI 视频归并建议"),
                     (
-                        f"疑似同一视频：{source['name']} → {primary_family['name']}\n"
-                        f"建议主资源：{primary_family['name']}\n"
-                        f"置信度：{float(group.get('confidence') or 0):.0%}\n"
-                        f"理由：{group.get('reason') or '未说明'}\n\n"
-                        f"确认后将迁移 {impact['variant_count']} 个版本、"
-                        f"{impact['reference_count']} 处 PPTX 引用和 "
-                        f"{impact['known_hash_count']} 个哈希别名。"
-                        "是否确认它们内容相同？"
+                        f"{tr('疑似同一视频：')}{source['name']} → {primary_family['name']}\n" +
+                        f"{tr('建议主资源：')}{primary_family['name']}\n" +
+                        f"{tr('置信度：')}{float(group.get('confidence') or 0):.0%}\n" +
+                        f"{tr('理由：')}{group.get('reason') or tr('未说明')}\n\n" +
+                        f"{tr('确认后将迁移 ')}{impact['variant_count']}{tr(' 个版本、')}" +
+                        f"{impact['reference_count']}{tr(' 处 PPTX 引用和 ')}" +
+                        f"{impact['known_hash_count']}{tr(' 个哈希别名。')}" +
+                        tr("是否确认它们内容相同？")
                     ),
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                     QMessageBox.StandardButton.No,
@@ -4118,14 +4119,14 @@ class MainWindow(QMainWindow):
     def _ai_failed(self, message: str) -> None:
         if self.ai_ignore_result:
             return
-        self.append_log(f"AI 分析失败：{message}")
+        self.append_log(f"{tr('AI 分析失败：')}{message}")
         self.show_error(message)
 
     def _ai_thread_finished(self) -> None:
         self.ai_worker = None
         self.ai_thread = None
-        self.ai_button.setText("AI 整理建议")
-        self.detail_ai_button.setText("AI 建议")
+        self.ai_button.setText(tr("AI 整理建议"))
+        self.detail_ai_button.setText(tr("AI 建议"))
         self.log_hide_timer.start(2500)
         self._update_action_states()
 
@@ -4141,25 +4142,25 @@ class MainWindow(QMainWindow):
             return
         family, variant = self.selected_family_variant()
         if family is None or variant is None:
-            self.show_error("请选择一个异常视频版本。")
+            self.show_error(tr("请选择一个异常视频版本。"))
             return
         answer = QMessageBox.question(
             self,
-            "隔离异常版本",
-            f"将“{family['name']} · {variant.get('label', '')}”移到待清理目录。\n"
-            "不会删除文件，也不会改变其他版本或 PPTX 关联。是否继续？",
+            tr("隔离异常版本"),
+            f"{tr('将“')}{family['name']}{tr(' · ')}{variant.get('label', '')}{tr('”移到待清理目录。')}\n" +
+            tr("不会删除文件，也不会改变其他版本或 PPTX 关联。是否继续？"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
         if answer != QMessageBox.StandardButton.Yes:
             return
         self.run_operation(
-            "正在隔离异常视频版本",
+            tr("正在隔离异常视频版本"),
             lambda _progress, _cancelled: self.project.quarantine_abnormal_variant(
                 variant["id"]
             ),
             lambda _result: self.append_log(
-                "异常版本已移到待清理目录，可在“待清理”中恢复。"
+                tr("异常版本已移到待清理目录，可在“待清理”中恢复。")
             ),
         )
 
@@ -4168,13 +4169,13 @@ class MainWindow(QMainWindow):
             return
         source, _ = self.selected_family_variant()
         if source is None:
-            self.show_error("请选择需要归并的视频。")
+            self.show_error(tr("请选择需要归并的视频。"))
             return
         targets = [
             family for family in self.project.families() if family["id"] != source["id"]
         ]
         if not targets:
-            self.show_error("没有其他视频可供归并。")
+            self.show_error(tr("没有其他视频可供归并。"))
             return
         source_variant = self.project.source_variant(source)
         try:
@@ -4184,7 +4185,7 @@ class MainWindow(QMainWindow):
             return
 
         self.run_operation(
-            "正在查找相似视频族",
+            tr("正在查找相似视频族"),
             lambda _progress, _cancelled: {
                 **self.project.suggest_video_matches(
                     source_path, limit=min(12, len(self.project.families()))
@@ -4204,7 +4205,7 @@ class MainWindow(QMainWindow):
             if candidate["family_id"] != source_family_id
         ]
         if not item["candidates"]:
-            self.show_error("没有其他可供核对的视频族。")
+            self.show_error(tr("没有其他可供核对的视频族。"))
             return
         dialog = VideoMatchDialog(
             self,
@@ -4219,24 +4220,24 @@ class MainWindow(QMainWindow):
         source = self.project.family(source_family_id)
         target = self.project.family(dialog.selected_family_id)
         impact = self.project.family_merge_impact(source["id"], target["id"])
-        deck_names = "、".join(impact["deck_names"][:3])
+        deck_names = tr("、").join(impact["deck_names"][:3])
         if len(impact["deck_names"]) > 3:
-            deck_names += f" 等 {impact['deck_count']} 个"
+            deck_names += f"{tr(' 等 ')}{impact['deck_count']}{tr(' 个')}"
         association_text = (
-            f"\n将迁移 {impact['reference_count']} 处 PPTX 视频引用"
-            f"（{impact['deck_count']} 个 PPTX）"
+            f"\n{tr('将迁移 ')}{impact['reference_count']}{tr(' 处 PPTX 视频引用')}" +
+            f"{tr('（')}{impact['deck_count']}{tr(' 个 PPTX）')}"
         )
         if deck_names:
-            association_text += f"：{deck_names}"
+            association_text += f"{tr('：')}{deck_names}"
         answer = QMessageBox.question(
             self,
-            "确认归并视频",
-            f"将“{source['name']}”归并到“{target['name']}”。\n"
-            f"将迁移 {impact['variant_count']} 个版本和 "
-            f"{impact['known_hash_count']} 个已知哈希别名。"
-            f"{association_text}\n\n"
-            "目标视频当前的高清源会继续作为高清源；原 PPTX 引用和压缩版哈希"
-            "会一并改到目标族，并在保存时校验。是否确认它们是同一视频？",
+            tr("确认归并视频"),
+            f"{tr('将“')}{source['name']}{tr('”归并到“')}{target['name']}{tr('”。')}\n" +
+            f"{tr('将迁移 ')}{impact['variant_count']}{tr(' 个版本和 ')}" +
+            f"{impact['known_hash_count']}{tr(' 个已知哈希别名。')}" +
+            f"{association_text}\n\n" +
+            tr("目标视频当前的高清源会继续作为高清源；原 PPTX 引用和压缩版哈希") +
+            tr("会一并改到目标族，并在保存时校验。是否确认它们是同一视频？"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -4257,12 +4258,12 @@ class MainWindow(QMainWindow):
             return
         family, _ = self.selected_family_variant()
         if family is None:
-            self.show_error("请选择需要核实的视频族或版本。")
+            self.show_error(tr("请选择需要核实的视频族或版本。"))
             return
         threshold = self.settings.value("cleanup/ssim_threshold", 0.95, float)
         family_id = family["id"]
         self.run_operation(
-            f"正在核实“{family['name']}”的版本和重复候选…",
+            f"{tr('正在核实“')}{family['name']}{tr('”的版本和重复候选…')}",
             lambda progress, cancelled: self.project.scan_cleanup_groups(
                 ssim_threshold=threshold,
                 focus_family_id=family_id,
@@ -4284,13 +4285,13 @@ class MainWindow(QMainWindow):
             group for group in groups if family_id in group.get("family_ids", [])
         ]
         if not selected_groups:
-            self.append_log("当前视频没有发现可整理的重复版本。")
+            self.append_log(tr("当前视频没有发现可整理的重复版本。"))
             _exec_centered_message(
                 self,
                 QMessageBox.Icon.Information,
-                "核实版本",
-                "当前视频没有发现可安全归并或清理的重复版本。\n"
-                "如需指定高清基线，请选择具体版本后点击“设为高清源”。",
+                tr("核实版本"),
+                tr("当前视频没有发现可安全归并或清理的重复版本。\n") +
+                tr("如需指定高清基线，请选择具体版本后点击“设为高清源”。"),
             )
             return
         self._cleanup_scan_finished(selected_groups, threshold)
@@ -4299,16 +4300,16 @@ class MainWindow(QMainWindow):
         if self.project is None:
             return
         root = QFileDialog.getExistingDirectory(
-            self, "选择搜索目录", str(self.project.root)
+            self, tr("选择搜索目录"), str(self.project.root)
         )
         if not root:
             return
         self.run_operation(
-            "正在查找丢失视频",
+            tr("正在查找丢失视频"),
             lambda progress, cancelled: self.project.relink_missing(
                 [Path(root)], progress_callback=progress, cancel_callback=cancelled
             ),
-            lambda result: self.append_log(f"已重新关联 {len(result)} 个视频版本。"),
+            lambda result: self.append_log(f"{tr('已重新关联 ')}{len(result)}{tr(' 个视频版本。')}"),
         )
 
     def start_cleanup_scan(self) -> None:
@@ -4317,8 +4318,8 @@ class MainWindow(QMainWindow):
         threshold = self.settings.value("cleanup/ssim_threshold", 0.95, float)
         threshold, ok = QInputDialog.getDouble(
             self,
-            "整理视频库",
-            "“体积更小但质量接近”的 SSIM 阈值（0.90 - 1.00）：",
+            tr("整理视频库"),
+            tr("“体积更小但质量接近”的 SSIM 阈值（0.90 - 1.00）："),
             threshold,
             0.90,
             1.00,
@@ -4328,7 +4329,7 @@ class MainWindow(QMainWindow):
             return
         self.settings.setValue("cleanup/ssim_threshold", threshold)
         self.run_operation(
-            "正在扫描视频库重复候选…",
+            tr("正在扫描视频库重复候选…"),
             lambda progress, cancelled: self.project.scan_cleanup_groups(
                 ssim_threshold=threshold,
                 progress_callback=progress,
@@ -4341,12 +4342,12 @@ class MainWindow(QMainWindow):
         self, groups: list[dict[str, Any]], threshold: float
     ) -> None:
         if not groups:
-            self.append_log("没有发现可整理的重复版本。")
+            self.append_log(tr("没有发现可整理的重复版本。"))
             return
-        self.append_log(f"发现 {len(groups)} 组重复候选，等待确认保留项。")
+        self.append_log(f"{tr('发现 ')}{len(groups)}{tr(' 组重复候选，等待确认保留项。')}")
         dialog = CleanupDialog(self, groups, threshold)
         if dialog.exec() != CleanupDialog.DialogCode.Accepted:
-            self.append_log("已取消整理。")
+            self.append_log(tr("已取消整理。"))
             return
         decisions = dialog.decisions()
         if not decisions:
@@ -4362,8 +4363,8 @@ class MainWindow(QMainWindow):
                 >= 2
             )
             blocked = [
-                f"{candidate.get('label') or candidate.get('path') or '未命名版本'}："
-                + "、".join(candidate.get("block_reasons", []))
+                f"{candidate.get('label') or candidate.get('path') or tr('未命名版本')}{tr('：')}"
+                + tr("、").join(candidate.get("block_reasons", []))
                 for group in groups
                 for candidate in group.get("candidates", [])
                 if candidate.get("block_reasons")
@@ -4385,18 +4386,18 @@ class MainWindow(QMainWindow):
             )
             if actionable_groups == 0 and blocked:
                 message = (
-                    "没有执行整理：候选版本未通过安全一致性校验，"
-                    "不会自动移入待清理。\n\n" + "\n".join(blocked[:6])
+                    tr("没有执行整理：候选版本未通过安全一致性校验，") +
+                    tr("不会自动移入待清理。\n\n") + "\n".join(blocked[:6])
                 )
                 if forceable_groups:
                     message += (
-                        "\n\n如确认要处理族内锁定版本，请勾选“人工确认：连锁定版本也移入待清理”，"
-                        "并完成二次确认。"
+                        tr("\n\n如确认要处理族内锁定版本，请勾选“人工确认：连锁定版本也移入待清理”，") +
+                        tr("并完成二次确认。")
                     )
             else:
-                message = "没有选择需要处理的组。"
+                message = tr("没有选择需要处理的组。")
             self.append_log(message.replace("\n", " "))
-            QMessageBox.information(self, "整理视频库", message)
+            QMessageBox.information(self, tr("整理视频库"), message)
             return
         forced = [
             variant_id
@@ -4406,18 +4407,18 @@ class MainWindow(QMainWindow):
         if forced:
             answer = QMessageBox.question(
                 self,
-                "确认强制整理",
-                "有版本未通过时长、音轨或内容一致性校验。\n"
-                f"将 {len(forced)} 个版本移入可恢复的待清理目录，可能不是同一视频；"
-                "不会直接删除。是否继续？",
+                tr("确认强制整理"),
+                tr("有版本未通过时长、音轨或内容一致性校验。\n") +
+                f"{tr('将 ')}{len(forced)}{tr(' 个版本移入可恢复的待清理目录，可能不是同一视频；')}" +
+                tr("不会直接删除。是否继续？"),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )
             if answer != QMessageBox.StandardButton.Yes:
-                self.append_log("已取消强制整理。")
+                self.append_log(tr("已取消强制整理。"))
                 return
         self.run_operation(
-            f"正在应用整理（{len(decisions)} 组）…",
+            f"{tr('正在应用整理（')}{len(decisions)}{tr(' 组）…')}",
             lambda progress, cancelled: self.project.apply_cleanup_plan(
                 decisions,
                 progress_callback=progress,
@@ -4429,12 +4430,12 @@ class MainWindow(QMainWindow):
     def _cleanup_apply_finished(self, result: dict[str, Any]) -> None:
         applied = result["applied"]
         failed = result["failed"]
-        self.append_log(f"整理完成：{applied} 组已处理，{failed} 组失败。")
+        self.append_log(f"{tr('整理完成：')}{applied}{tr(' 组已处理，')}{failed}{tr(' 组失败。')}")
         for item in result["results"]:
             if not item["ok"]:
-                self.append_log(f"失败：{item['error']}")
+                self.append_log(f"{tr('失败：')}{item['error']}")
         if failed:
-            self.show_error(f"{failed} 组整理失败，详情见日志。")
+            self.show_error(f"{failed}{tr(' 组整理失败，详情见日志。')}")
         self.refresh_views()
 
     def show_pending_cleanup(self) -> None:
@@ -4476,7 +4477,7 @@ class MainWindow(QMainWindow):
 
     @Slot(object)
     def operation_succeeded(self, result: Any) -> None:
-        self.append_log("操作完成。")
+        self.append_log(tr("操作完成。"))
         self.refresh_views()
         if self.operation_done:
             self.operation_done(result)
@@ -4517,12 +4518,12 @@ class MainWindow(QMainWindow):
                 grace_seconds=0.2,
                 owner_thread_id=self.worker.thread_id,
             )
-        self.append_log("正在停止当前操作…")
+        self.append_log(tr("正在停止当前操作…"))
 
     def require_project(self) -> bool:
         if self.project is not None:
             return True
-        self.show_error("请先新建或打开一个视频库。")
+        self.show_error(tr("请先新建或打开一个视频库。"))
         return False
 
     def append_log(self, message: str, *, reveal: bool = True) -> None:
@@ -4532,7 +4533,7 @@ class MainWindow(QMainWindow):
                 self.toggle_operation_log(True)
                 if not self.is_running:
                     self.log_hide_timer.start(2500)
-            self.log_shelf.setText(f"状态与日志 · {message.splitlines()[0]}")
+            self.log_shelf.setText(f"{tr('状态与日志 · ')}{message.splitlines()[0]}")
             LOGGER.info("%s", message)
 
     def _position_operation_log(self) -> None:
@@ -4567,7 +4568,7 @@ class MainWindow(QMainWindow):
         _exec_centered_message(
             self,
             QMessageBox.Icon.Warning,
-            "视频库",
+            tr("视频库"),
             message,
         )
 

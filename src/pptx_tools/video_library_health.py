@@ -6,6 +6,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from pptx_tools.manager_i18n import tr
+
 if TYPE_CHECKING:
     from pptx_tools.video_manager import VideoProject
 
@@ -61,22 +63,22 @@ def audit_video_project(
             family_index == 1 or family_index == len(families) or family_index % 25 == 0
         ):
             progress_callback(
-                f"正在核对视频族 {family_index}/{len(families)}：{family['name']}"
+                f"{tr('正在核对视频族 ')}{family_index}/{len(families)}{tr('：')}{family['name']}"
             )
         family_id = family["id"]
         variants = family.get("variants", [])
         variant_count += len(variants)
         variant_ids = {variant["id"] for variant in variants}
         for key, label in (
-            ("source_variant_id", "高清源"),
-            ("active_variant_id", "当前版本"),
+            ("source_variant_id", tr("高清源")),
+            ("active_variant_id", tr("当前版本")),
         ):
             if family.get(key) not in variant_ids:
                 issues.append(
                     _issue(
                         "error",
                         "invalid_family_pointer",
-                        f"{family['name']} 的{label}不存在。",
+                        f"{family['name']}{tr(' 的')}{label}{tr('不存在。')}",
                         family_id=family_id,
                     )
                 )
@@ -97,7 +99,7 @@ def audit_video_project(
                     _issue(
                         "error",
                         "missing_variant",
-                        f"视频文件不存在：{path}",
+                        f"{tr('视频文件不存在：')}{path}",
                         family_id=family_id,
                         variant_id=variant_id,
                         path=str(path),
@@ -112,7 +114,7 @@ def audit_video_project(
                         _issue(
                             "error",
                             "hash_mismatch",
-                            f"视频文件哈希与清单不一致：{path}",
+                            f"{tr('视频文件哈希与清单不一致：')}{path}",
                             family_id=family_id,
                             variant_id=variant_id,
                             path=str(path),
@@ -126,7 +128,7 @@ def audit_video_project(
                             _issue(
                                 "warning",
                                 "variant_metadata_drift",
-                                f"视频内容未变，但文件时间戳与清单不同：{path}",
+                                f"{tr('视频内容未变，但文件时间戳与清单不同：')}{path}",
                                 family_id=family_id,
                                 variant_id=variant_id,
                                 path=str(path),
@@ -138,7 +140,7 @@ def audit_video_project(
                     _issue(
                         "error",
                         "modified_variant",
-                        f"视频文件大小或时间戳在入库后发生变化：{path}",
+                        f"{tr('视频文件大小或时间戳在入库后发生变化：')}{path}",
                         family_id=family_id,
                         variant_id=variant_id,
                         path=str(path),
@@ -161,7 +163,7 @@ def audit_video_project(
                     _issue(
                         severity,
                         "unreadable_variant",
-                        f"媒体元数据不可读：{path}",
+                        f"{tr('媒体元数据不可读：')}{path}",
                         family_id=family_id,
                         variant_id=variant_id,
                         path=str(path),
@@ -174,7 +176,7 @@ def audit_video_project(
                 _issue(
                     "error",
                     "ambiguous_known_hash",
-                    f"同一已知哈希属于 {len(owners)} 个视频族：{digest[:12]}",
+                    f"{tr('同一已知哈希属于 ')}{len(owners)}{tr(' 个视频族：')}{digest[:12]}",
                     sha256=digest,
                     family_ids=sorted(owners),
                 )
@@ -185,7 +187,7 @@ def audit_video_project(
                 _issue(
                     "error",
                     "duplicate_variant_hash",
-                    f"同一实体视频哈希跨 {len(owners)} 个视频族重复：{digest[:12]}",
+                    f"{tr('同一实体视频哈希跨 ')}{len(owners)}{tr(' 个视频族重复：')}{digest[:12]}",
                     sha256=digest,
                     family_ids=sorted(owners),
                 )
@@ -196,7 +198,7 @@ def audit_video_project(
                 _issue(
                     "error",
                     "duplicate_variant_path",
-                    f"同一视频文件路径被 {len(variant_ids)} 个版本共同占用：{path}",
+                    f"{tr('同一视频文件路径被 ')}{len(variant_ids)}{tr(' 个版本共同占用：')}{path}",
                     path=path,
                     variant_ids=variant_ids,
                 )
@@ -214,7 +216,7 @@ def audit_video_project(
             deck_index == 1 or deck_index == len(decks) or deck_index % 50 == 0
         ):
             progress_callback(
-                f"正在核对 PPTX 关联 {deck_index}/{len(decks)}：{deck['name']}"
+                f"{tr('正在核对 PPTX 关联 ')}{deck_index}/{len(decks)}{tr('：')}{deck['name']}"
             )
         source = project.deck_source_path(deck)
         aliases = [
@@ -232,9 +234,9 @@ def audit_video_project(
                         else "deck_source_missing"
                     ),
                     (
-                        f"PPTX 主路径已失效，但存在可用别名：{alias_available}"
+                        f"{tr('PPTX 主路径已失效，但存在可用别名：')}{alias_available}"
                         if alias_available
-                        else f"PPTX 来源文件不存在：{source}"
+                        else f"{tr('PPTX 来源文件不存在：')}{source}"
                     ),
                     deck_id=deck["id"],
                     path=str(source),
@@ -254,7 +256,7 @@ def audit_video_project(
                         _issue(
                             "info",
                             "missing_output_record",
-                            f"历史输出已不存在：{path}",
+                            f"{tr('历史输出已不存在：')}{path}",
                             deck_id=deck["id"],
                             output_id=record.get("id"),
                             output_kind=kind,
@@ -269,7 +271,7 @@ def audit_video_project(
                         _issue(
                             "warning",
                             "changed_output_record",
-                            f"历史输出已被修改：{path}",
+                            f"{tr('历史输出已被修改：')}{path}",
                             deck_id=deck["id"],
                             output_id=record.get("id"),
                             output_kind=kind,
@@ -285,7 +287,7 @@ def audit_video_project(
             _issue(
                 "warning",
                 "untracked_media",
-                f"media 目录中存在未登记文件：{path}",
+                f"{tr('media 目录中存在未登记文件：')}{path}",
                 path=str(path),
             )
         )
@@ -300,7 +302,7 @@ def audit_video_project(
             _issue(
                 "error",
                 "cleanup_index_invalid",
-                f"待清理索引不可用：{exc}",
+                f"{tr('待清理索引不可用：')}{exc}",
             )
         )
 
