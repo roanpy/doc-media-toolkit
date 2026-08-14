@@ -12,6 +12,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pptx_tools.manager_i18n import tr
+
 UI_FONT_CANDIDATES = (
     "PingFang SC",
     "Hiragino Sans GB",
@@ -91,13 +93,15 @@ def install_control_help(root: QWidget) -> None:
     for button in root.findChildren(QPushButton):
         text = button.text().strip().replace("&", "")
         if text and not button.toolTip():
-            button.setToolTip(f"点击执行“{text}”。")
+            button.setToolTip(tr("点击执行“{}”。").format(text))
     for combo in root.findChildren(QComboBox):
         if combo.toolTip():
             continue
 
         def update_combo_help(_index: int = -1, control: QComboBox = combo) -> None:
-            control.setToolTip(f"当前选择：{control.currentText()}。点击切换其他选项。")
+            control.setToolTip(
+                tr("当前选择：{}。点击切换其他选项。").format(control.currentText())
+            )
 
         update_combo_help()
         combo.currentIndexChanged.connect(update_combo_help)

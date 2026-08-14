@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pptx_tools.manager_i18n import tr
 from pptx_tools.ui_theme import SHARED_DIALOG_QSS
 
 
@@ -30,12 +31,12 @@ class AISuggestionDialog(QDialog):
         self.result = result
         self.current = current
         self.checks: dict[str, QCheckBox] = {}
-        self.setWindowTitle("AI 整理建议")
+        self.setWindowTitle(tr("AI 整理建议"))
         self.setMinimumWidth(620)
         self.setMaximumHeight(720)
         self.setStyleSheet(SHARED_DIALOG_QSS)
         root = QVBoxLayout(self)
-        root.addWidget(QLabel("逐项核对后再应用；未勾选的内容不会修改。"))
+        root.addWidget(QLabel(tr("逐项核对后再应用；未勾选的内容不会修改。")))
 
         scroll = QScrollArea()
         scroll.setObjectName("aiReviewScroll")
@@ -47,12 +48,12 @@ class AISuggestionDialog(QDialog):
             value = result.get(key)
             if not value:
                 continue
-            display = "、".join(value) if isinstance(value, list) else str(value)
+            display = tr("、").join(value) if isinstance(value, list) else str(value)
             old = current.get(key)
             old_display = (
-                "、".join(old) if isinstance(old, list) else str(old or "未填写")
+                tr("、").join(old) if isinstance(old, list) else str(old or tr("未填写"))
             )
-            checkbox = QCheckBox(f"{label}：{old_display}  →  {display}")
+            checkbox = QCheckBox(f"{label}{tr('：')}{old_display}  →  {display}")
             checkbox.setChecked(True)
             self.checks[key] = checkbox
             body_layout.addWidget(checkbox)
@@ -60,15 +61,15 @@ class AISuggestionDialog(QDialog):
         groups = result.get("merge_groups") or []
         if groups:
             body_layout.addWidget(
-                QLabel("疑似同源与主资源建议（仅进入核对，不自动合并）：")
+                QLabel(tr("疑似同源与主资源建议（仅进入核对，不自动合并）："))
             )
         for group in groups:
             names = [item_names.get(item_id, item_id) for item_id in group["item_ids"]]
             primary = item_names.get(group["primary_id"], group["primary_id"])
             detail = QLabel(
-                f"{' + '.join(names)}\n"
-                f"建议主资源：{primary}（{group['confidence']:.0%}）\n"
-                f"理由：{group['reason'] or '未说明'}"
+                f"{' + '.join(names)}\n" +
+                f"{tr('建议主资源：')}{primary}{tr('（')}{group['confidence']:.0%}{tr('）')}\n" +
+                f"{tr('理由：')}{group['reason'] or tr('未说明')}"
             )
             detail.setWordWrap(True)
             detail.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
@@ -79,9 +80,9 @@ class AISuggestionDialog(QDialog):
 
         actions = QHBoxLayout()
         actions.addStretch(1)
-        close = QPushButton("关闭")
+        close = QPushButton(tr("关闭"))
         close.clicked.connect(self.reject)
-        apply_button = QPushButton("应用勾选字段")
+        apply_button = QPushButton(tr("应用勾选字段"))
         apply_button.setObjectName("primaryAction")
         apply_button.setEnabled(bool(self.checks))
         apply_button.clicked.connect(self.accept)
