@@ -215,8 +215,8 @@ class SimilarImageReviewDialog(QDialog):
         self.setStyleSheet(IMAGE_MANAGER_STYLESHEET)
         layout = QVBoxLayout(self)
         hint = QLabel(
-            f"{tr('代码相似分 ')}{score:.1f}{tr('。请查看两张图片后决定；')}" +
-            tr("合并只整理图片库，原始图片和文档不受影响。")
+            f"{tr('代码相似分 ')}{score:.1f}{tr('。请查看两张图片后决定；')}"
+            + tr("合并只整理图片库，原始图片和文档不受影响。")
         )
         hint.setObjectName("dialogSummary")
         hint.setWordWrap(True)
@@ -225,9 +225,9 @@ class SimilarImageReviewDialog(QDialog):
         for label, asset in ((tr("左图"), left), (tr("右图"), right)):
             pane = QVBoxLayout()
             title = QLabel(
-                f"{label}{tr(' · ')}{asset['name']}\n" +
-                f"{asset['width']}×{asset['height']}{tr(' · ')}{asset['format']}{tr(' · ')}" +
-                f"{format_user_file_size(asset['size_bytes'])}"
+                f"{label}{tr(' · ')}{asset['name']}\n"
+                + f"{asset['width']}×{asset['height']}{tr(' · ')}{asset['format']}{tr(' · ')}"
+                + f"{format_user_file_size(asset['size_bytes'])}"
             )
             title.setWordWrap(True)
             preview = QLabel(tr("无法预览"))
@@ -285,7 +285,9 @@ class PendingImageCleanupDialog(QDialog):
         self.summary.setWordWrap(True)
         layout.addWidget(self.summary)
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels([tr("文件"), tr("原位置"), tr("大小"), tr("原因"), tr("隔离时间")])
+        self.tree.setHeaderLabels(
+            [tr("文件"), tr("原位置"), tr("大小"), tr("原因"), tr("隔离时间")]
+        )
         self.tree.setColumnWidth(0, 220)
         self.tree.setColumnWidth(1, 220)
         self.tree.setColumnWidth(2, 90)
@@ -321,7 +323,11 @@ class PendingImageCleanupDialog(QDialog):
         self.summary.setText(
             (
                 f"{tr('共 ')}{len(entries)}{tr(' 个文件，')}{format_user_file_size(total)}{tr('。')}"
-                + (f"\n⚠ {tr('；').join(issues)}" if issues else tr("\n可还原或永久清空。"))
+                + (
+                    f"\n⚠ {tr('；').join(issues)}"
+                    if issues
+                    else tr("\n可还原或永久清空。")
+                )
             )
             if entries
             else tr("当前没有待清理文件。")
@@ -373,7 +379,9 @@ class PendingImageCleanupDialog(QDialog):
         except Exception as exc:
             QMessageBox.warning(self, tr("图片待清理目录"), str(exc))
             return
-        self.window.status_label.setText(f"{tr('状态与日志 · 已永久清空 ')}{removed}{tr(' 个文件')}")
+        self.window.status_label.setText(
+            f"{tr('状态与日志 · 已永久清空 ')}{removed}{tr(' 个文件')}"
+        )
         self.window.refresh_views()
         self.reload()
 
@@ -597,12 +605,14 @@ class MainWindow(QMainWindow):
         self.similar_button.clicked.connect(self.show_similar)
         self.ai_button = QPushButton(tr("AI 整理建议"), box)
         self.ai_button.setToolTip(
-            tr("先用代码指纹筛选候选，再由 AI 建议命名、分类、合并组和主资源；") +
-            tr("视觉模型可额外参考压缩预览。")
+            tr("先用代码指纹筛选候选，再由 AI 建议命名、分类、合并组和主资源；")
+            + tr("视觉模型可额外参考压缩预览。")
         )
         self.ai_button.clicked.connect(self.request_ai_suggestion)
         self.open_location_button = QPushButton(tr("打开位置"), box)
-        self.open_location_button.setToolTip(tr("在系统文件管理器中打开所选图片所在目录。"))
+        self.open_location_button.setToolTip(
+            tr("在系统文件管理器中打开所选图片所在目录。")
+        )
         self.open_location_button.clicked.connect(self.open_selected_location)
         self.delete_button = QPushButton(tr("移除选中"), box)
         self.delete_button.setToolTip(
@@ -628,7 +638,9 @@ class MainWindow(QMainWindow):
         self.more_actions_menu.addSection(tr("库维护"))
         health_action = self.more_actions_menu.addAction(tr("库体检"))
         health_action.triggered.connect(self.show_library_health)
-        health_action.setToolTip(tr("只读检查媒体缺失、大小变化、未登记文件和待清理索引。"))
+        health_action.setToolTip(
+            tr("只读检查媒体缺失、大小变化、未登记文件和待清理索引。")
+        )
         self.health_action = health_action
         cleanup_action = self.more_actions_menu.addAction(tr("清理未引用文件"))
         cleanup_action.triggered.connect(self.cleanup_button.click)
@@ -682,7 +694,15 @@ class MainWindow(QMainWindow):
         self.library_empty.setWordWrap(True)
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(
-            [tr("名称"), tr("分类"), tr("规格"), tr("格式"), tr("大小"), tr("来源"), tr("相似")]
+            [
+                tr("名称"),
+                tr("分类"),
+                tr("规格"),
+                tr("格式"),
+                tr("大小"),
+                tr("来源"),
+                tr("相似"),
+            ]
         )
         self.tree.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.tree.setAlternatingRowColors(True)
@@ -812,8 +832,8 @@ class MainWindow(QMainWindow):
             tr("导入图片或文档"),
             "",
             (
-                tr("支持的文件 (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.tif *.tiff ") +
-                tr("*.pptx *.docx *.pdf);;所有文件 (*)")
+                tr("支持的文件 (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.tif *.tiff ")
+                + tr("*.pptx *.docx *.pdf);;所有文件 (*)")
             ),
         )
         if files:
@@ -859,7 +879,9 @@ class MainWindow(QMainWindow):
             )
             self.import_drop_label.setText(f"{tr('待入库：')}{names}{more}")
         else:
-            self.import_drop_label.setText(tr("可拖入或多选图片、PPTX、DOCX、数字版 PDF"))
+            self.import_drop_label.setText(
+                tr("可拖入或多选图片、PPTX、DOCX、数字版 PDF")
+            )
         self._sync_actions()
 
     def clear_pending_import(self) -> None:
@@ -921,8 +943,8 @@ class MainWindow(QMainWindow):
         failed = len(result["failed"])
         skipped = len(result["skipped"])
         self.status_label.setText(
-            f"{tr('状态与日志 · 新增 ')}{result['added']}{tr('，复用 ')}{result['reused']}{tr('，')}" +
-            f"{tr('排除 ')}{skipped}{tr('，失败 ')}{failed}"
+            f"{tr('状态与日志 · 新增 ')}{result['added']}{tr('，复用 ')}{result['reused']}{tr('，')}"
+            + f"{tr('排除 ')}{skipped}{tr('，失败 ')}{failed}"
             + (tr("，已取消后续文件") if result.get("cancelled") else "")
         )
         self.refresh_views()
@@ -978,8 +1000,8 @@ class MainWindow(QMainWindow):
         self.pending_cleanup_button.setText(f"{tr('待清理 ')}{len(pending)}")
         self.pending_cleanup_action.setText(f"{tr('待清理 (')}{len(pending)})")
         self.pending_cleanup_button.setToolTip(
-            f"{tr('当前待清理 ')}{len(pending)}{tr(' 个文件，')}" +
-            f"{format_user_file_size(pending_size)}{tr('；可还原或手动永久清空。')}"
+            f"{tr('当前待清理 ')}{len(pending)}{tr(' 个文件，')}"
+            + f"{format_user_file_size(pending_size)}{tr('；可还原或手动永久清空。')}"
         )
         needle = self.library_filter_input.text().strip().casefold()
         for asset in sorted(
@@ -1076,8 +1098,8 @@ class MainWindow(QMainWindow):
         self.ai_button.setEnabled(has_selection and ai_configured and not busy)
         self.ai_button.setToolTip(
             (
-                tr("先用代码指纹筛选候选，再由 AI 建议命名、分类、合并组和主资源；") +
-                tr("视觉模型可额外参考压缩预览。")
+                tr("先用代码指纹筛选候选，再由 AI 建议命名、分类、合并组和主资源；")
+                + tr("视觉模型可额外参考压缩预览。")
             )
             if ai_configured
             else tr("请先点击顶栏齿轮配置并验证 AI；未配置时图片库功能不受影响。")
@@ -1176,11 +1198,11 @@ class MainWindow(QMainWindow):
             )
         origins = asset.get("origins") or []
         self.detail_meta.setText(
-            f"{asset['width']}×{asset['height']}{tr(' · ')}{asset['format']}{tr(' · ')}" +
-            f"{format_user_file_size(asset['size_bytes'])}\n" +
-            f"{tr('SHA-256：')}{asset['sha256'][:16]}{tr('… · 来源 ')}{len(origins)}{tr(' 处')}\n" +
-            f"{tr('分类：')}{asset.get('category') or tr('未分类')}{tr(' · ')}" +
-            f"{tr('标签：')}{tr('、').join(asset.get('tags') or []) or tr('无')}"
+            f"{asset['width']}×{asset['height']}{tr(' · ')}{asset['format']}{tr(' · ')}"
+            + f"{format_user_file_size(asset['size_bytes'])}\n"
+            + f"{tr('SHA-256：')}{asset['sha256'][:16]}{tr('… · 来源 ')}{len(origins)}{tr(' 处')}\n"
+            + f"{tr('分类：')}{asset.get('category') or tr('未分类')}{tr(' · ')}"
+            + f"{tr('标签：')}{tr('、').join(asset.get('tags') or []) or tr('无')}"
         )
         self.detail_summary.setText(asset.get("summary") or tr("暂无说明。"))
         self.detail_origins.clear()
@@ -1284,7 +1306,9 @@ class MainWindow(QMainWindow):
             reviewed += 1
             self.refresh_views()
         if reviewed:
-            self.status_label.setText(f"{tr('状态与日志 · 已核对 ')}{reviewed}{tr(' 组相似图片')}")
+            self.status_label.setText(
+                f"{tr('状态与日志 · 已核对 ')}{reviewed}{tr(' 组相似图片')}"
+            )
             self.refresh_views()
             return
         if not self.project.similar_candidates(current_id):
@@ -1300,7 +1324,9 @@ class MainWindow(QMainWindow):
         except Exception as exc:
             self.show_error(str(exc))
             return
-        self.status_label.setText(f"{tr('状态与日志 · 已重置 ')}{count}{tr(' 组忽略的相似候选')}")
+        self.status_label.setText(
+            f"{tr('状态与日志 · 已重置 ')}{count}{tr(' 组忽略的相似候选')}"
+        )
         self.refresh_views()
 
     def request_ai_suggestion(self) -> None:
@@ -1311,7 +1337,9 @@ class MainWindow(QMainWindow):
             if self.ai_worker is not None:
                 self.ai_worker.cancel()
             self.ai_button.setText(tr("已取消显示"))
-            self.status_label.setText(tr("状态与日志 · 已取消显示；网络请求会在后台结束"))
+            self.status_label.setText(
+                tr("状态与日志 · 已取消显示；网络请求会在后台结束")
+            )
             return
 
         asset = self.selected_asset()
@@ -1331,8 +1359,8 @@ class MainWindow(QMainWindow):
                 self,
                 tr("AI 图片分析"),
                 (
-                    tr("将向已配置的 AI 服务发送所选图片和最多 5 张代码相似候选的") +
-                    f"{sent_content}{tr('，不发送原文档或本地路径。是否继续？')}"
+                    tr("将向已配置的 AI 服务发送所选图片和最多 5 张代码相似候选的")
+                    + f"{sent_content}{tr('，不发送原文档或本地路径。是否继续？')}"
                 ),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
@@ -1392,7 +1420,9 @@ class MainWindow(QMainWindow):
         try:
             asset = self.project.asset(self.ai_target_asset_id)
         except KeyError:
-            self.status_label.setText(tr("状态与日志 · 对应图片已不存在，AI 结果已忽略"))
+            self.status_label.setText(
+                tr("状态与日志 · 对应图片已不存在，AI 结果已忽略")
+            )
             self._finish_ai()
             return
         from pptx_tools.ai_review_dialog import AISuggestionDialog
@@ -1442,7 +1472,11 @@ class MainWindow(QMainWindow):
             applied.append(f"{tr('合并 ')}{merged}{tr(' 张重复图片')}")
         self.status_label.setText(
             tr("状态与日志 · AI 建议已完成")
-            + (f"{tr('，已应用：')}{tr('、').join(applied)}" if applied else tr("，未修改图片库"))
+            + (
+                f"{tr('，已应用：')}{tr('、').join(applied)}"
+                if applied
+                else tr("，未修改图片库")
+            )
         )
         if self.ai_request_config is not None:
             from pptx_tools.app_logging import write_ai_audit_event
@@ -1474,12 +1508,12 @@ class MainWindow(QMainWindow):
                 self,
                 tr("核对 AI 图片合并建议"),
                 (
-                    f"{tr('疑似同一图片：')}{names}\n" +
-                    f"{tr('建议保留：')}{primary['name']}\n" +
-                    f"{tr('置信度：')}{float(group.get('confidence') or 0):.0%}\n" +
-                    f"{tr('理由：')}{group.get('reason') or tr('未说明')}\n\n" +
-                    tr("确认后会合并来源、标签和说明，并删除库内其他副本；") +
-                    tr("原始文档和原始图片不受影响。是否确认它们内容相同？")
+                    f"{tr('疑似同一图片：')}{names}\n"
+                    + f"{tr('建议保留：')}{primary['name']}\n"
+                    + f"{tr('置信度：')}{float(group.get('confidence') or 0):.0%}\n"
+                    + f"{tr('理由：')}{group.get('reason') or tr('未说明')}\n\n"
+                    + tr("确认后会合并来源、标签和说明，并删除库内其他副本；")
+                    + tr("原始文档和原始图片不受影响。是否确认它们内容相同？")
                 ),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
@@ -1529,8 +1563,8 @@ class MainWindow(QMainWindow):
         answer = QMessageBox.question(
             self,
             tr("移除图片"),
-            f"{tr('将从图片库移除“')}{asset['name']}{tr('”并移入待清理目录。')}" +
-            tr("原始文档不受影响，是否继续？"),
+            f"{tr('将从图片库移除“')}{asset['name']}{tr('”并移入待清理目录。')}"
+            + tr("原始文档不受影响，是否继续？"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -1555,9 +1589,9 @@ class MainWindow(QMainWindow):
             self,
             tr("清理未引用文件"),
             (
-                f"{tr('发现 ')}{len(orphans)}{tr(' 个不在图片库清单中的文件。')}\n" +
-                tr("这些文件将移入待清理目录，可在“更多操作”中还原；") +
-                tr("原始文档不受影响。是否继续？")
+                f"{tr('发现 ')}{len(orphans)}{tr(' 个不在图片库清单中的文件。')}\n"
+                + tr("这些文件将移入待清理目录，可在“更多操作”中还原；")
+                + tr("原始文档不受影响。是否继续？")
             ),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
@@ -1597,12 +1631,20 @@ class MainWindow(QMainWindow):
         QMessageBox.information(
             self,
             tr("图片库体检"),
-            (tr("未发现异常。\n\n") if not issue_count else tr("发现需要处理的项目。\n\n"))
+            (
+                tr("未发现异常。\n\n")
+                if not issue_count
+                else tr("发现需要处理的项目。\n\n")
+            )
             + "\n".join(details),
         )
         self.status_label.setText(
             tr("状态与日志 · 图片库体检完成，")
-            + (tr("未发现异常") if not issue_count else f"{tr('发现 ')}{issue_count}{tr(' 项异常')}")
+            + (
+                tr("未发现异常")
+                if not issue_count
+                else f"{tr('发现 ')}{issue_count}{tr(' 项异常')}"
+            )
         )
 
     def dragEnterEvent(self, event) -> None:  # noqa: N802
