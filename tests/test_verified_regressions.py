@@ -13,6 +13,10 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from zipfile import ZipFile
 
+# Tests in this file assert Chinese UI strings; pin the language before any
+# manager GUI module reads the environment (release CI sets PPTX_TOOLS_LANG=en).
+os.environ["PPTX_TOOLS_LANG"] = "zh"
+
 from PySide6.QtCore import QMimeData, QPoint, QPointF, QSettings, Qt, QUrl
 from PySide6.QtGui import QColor, QDragEnterEvent, QDropEvent, QPixmap
 from PySide6.QtMultimedia import QMediaPlayer
@@ -571,13 +575,6 @@ class DesktopLifecycleTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
-        # These assertions expect Chinese UI strings regardless of the CI
-        # environment (the release workflow runs with PPTX_TOOLS_LANG=en).
-        manager_i18n.set_language("zh")
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        manager_i18n.set_language("zh")
 
     def setUp(self) -> None:
         self.settings = QSettings("Doc Media Toolkit", "Doc Media Toolkit")
@@ -2792,6 +2789,9 @@ class BackfillTierDialogTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+        # Dialog strings are asserted in Chinese regardless of the CI
+        # environment (the release workflow runs with PPTX_TOOLS_LANG=en).
+        manager_i18n.set_language("zh")
 
     def setUp(self) -> None:
         _FakeSettings.store.clear()
