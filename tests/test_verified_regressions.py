@@ -78,6 +78,7 @@ from pptx_tools.gui import (
     ToolSwitch,
     persistent_library_setting,
 )
+from pptx_tools import manager_i18n
 from pptx_tools.ai_client import AIConfig, OpenAICompatibleClient
 from pptx_tools.image_manager import ImageProject
 from pptx_tools.image_manager_gui import (
@@ -570,6 +571,13 @@ class DesktopLifecycleTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+        # These assertions expect Chinese UI strings regardless of the CI
+        # environment (the release workflow runs with PPTX_TOOLS_LANG=en).
+        manager_i18n.set_language("zh")
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        manager_i18n.set_language("zh")
 
     def setUp(self) -> None:
         self.settings = QSettings("Doc Media Toolkit", "Doc Media Toolkit")
