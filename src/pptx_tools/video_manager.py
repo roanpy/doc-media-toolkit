@@ -16,7 +16,7 @@ from array import array
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import asdict
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from types import SimpleNamespace
 from typing import Any
 from zipfile import BadZipFile, ZipFile
@@ -47,6 +47,15 @@ ProgressCallback = Callable[[str], None]
 CancelCallback = Callable[[], bool]
 PlaceholderBuilder = Callable[[Path, Path, dict[str, Any]], None]
 VIDEO_SUFFIXES = {".mp4", ".mov", ".m4v", ".wmv", ".avi", ".mkv", ".webm"}
+
+
+def _is_absolute_stored_path(value: str) -> bool:
+    """Recognize native and foreign-platform absolute paths."""
+    return (
+        Path(value).expanduser().is_absolute()
+        or PurePosixPath(value).is_absolute()
+        or PureWindowsPath(value).is_absolute()
+    )
 
 
 def utc_now() -> str:
@@ -980,7 +989,7 @@ class VideoProject:
 
         def validate_stored_path(value: str, label: str) -> None:
             stored = Path(value).expanduser()
-            if stored.is_absolute():
+            if _is_absolute_stored_path(value):
                 return
             try:
                 (path.parent / stored).resolve().relative_to(path.parent.resolve())
@@ -1389,7 +1398,9 @@ class VideoProject:
 
     def resolve_path(self, value: str) -> Path:
         path = Path(value).expanduser()
-        return path.resolve() if path.is_absolute() else (self.root / path).resolve()
+        if _is_absolute_stored_path(value):
+            return path.resolve() if path.is_absolute() else path
+        return (self.root / path).resolve()
 
     def deck_source_path(self, deck: dict[str, Any]) -> Path:
         return self.resolve_path(deck["source_path"])
