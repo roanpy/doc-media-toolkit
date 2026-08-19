@@ -85,6 +85,7 @@ from pptx_tools.image_manager_gui import (
     MainWindow as ImageLibraryMainWindow,
     SimilarImageReviewDialog,
 )
+from pptx_tools.manager_i18n import current_language, set_language
 from pptx_tools.video_manager import VideoProject
 from pptx_tools.video_manager_gui import (
     CleanupDialog,
@@ -2402,6 +2403,10 @@ class DesktopLifecycleTest(unittest.TestCase):
         window.close()
 
     def test_cleanup_dialog_builds_expected_decisions(self) -> None:
+        previous_language = current_language()
+        self.addCleanup(set_language, previous_language)
+        set_language("zh")
+
         def candidate(variant_id, family_id, name, *, allowed=True, keep=False):
             return {
                 "family_id": family_id,
