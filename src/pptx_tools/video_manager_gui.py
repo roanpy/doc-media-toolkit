@@ -2008,7 +2008,7 @@ class MainWindow(QMainWindow):
         )
         self.relink_button = QPushButton(tr("查找丢失"))
         self.relink_button.setToolTip(
-            tr("在你选择的目录中按哈希重新定位缺失视频，并恢复库内路径关联。")
+            tr("按哈希重新定位缺失视频并恢复路径关联；跨机器复制后也会核验内容并刷新时间戳状态。")
         )
         self.relink_button.clicked.connect(self.relink_missing)
         self.cleanup_button = QPushButton(tr("整理视频库"))
@@ -4309,8 +4309,12 @@ class MainWindow(QMainWindow):
             lambda progress, cancelled: self.project.relink_missing(
                 [Path(root)], progress_callback=progress, cancel_callback=cancelled
             ),
-            lambda result: self.append_log(f"{tr('已重新关联 ')}{len(result)}{tr(' 个视频版本。')}"),
+            self._relink_missing_finished,
         )
+
+    def _relink_missing_finished(self, result: list[dict[str, str]]) -> None:
+        self.append_log(f"{tr('已重新关联 ')}{len(result)}{tr(' 个视频版本。')}")
+        self.refresh_views()
 
     def start_cleanup_scan(self) -> None:
         if not self.require_project():

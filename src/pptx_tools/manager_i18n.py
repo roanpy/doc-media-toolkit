@@ -471,6 +471,7 @@ TRANSLATIONS.update({
     '来源视频族': 'Source family',
     '查找': 'Search',
     '查找丢失': 'Locate Missing',
+    '按哈希重新定位缺失视频并恢复路径关联；跨机器复制后也会核验内容并刷新时间戳状态。': 'Relocate missing videos by hash and restore path links; after copying between machines, it also verifies content and refreshes timestamp status.',
     '查找相似图': 'Find Similar Images',
     '查看已移出图片库但尚未永久删除的文件，可还原或手动清空。': 'Review files moved out of the library but not yet permanently deleted; restore or empty manually.',
     '查看整理后移入待清理目录的文件，可继续核对或恢复。': 'Review files moved to cleanup after organizing; you can keep checking or restore them.',
