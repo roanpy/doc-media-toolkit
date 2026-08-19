@@ -573,6 +573,8 @@ class DesktopLifecycleTest(unittest.TestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self) -> None:
+        self.manager_language = current_language()
+        set_language("zh")
         self.settings = QSettings("Doc Media Toolkit", "Doc Media Toolkit")
         self.last_project = self.settings.value("video_manager/last_project")
         self.library_sort = self.settings.value("video_library/sort")
@@ -696,6 +698,7 @@ class DesktopLifecycleTest(unittest.TestCase):
         self.assertEqual(results[0]["vision"], None)
 
     def tearDown(self) -> None:
+        set_language(self.manager_language)
         if self.last_project is not None:
             self.settings.setValue("video_manager/last_project", self.last_project)
         if self.library_sort is None:
@@ -2403,10 +2406,6 @@ class DesktopLifecycleTest(unittest.TestCase):
         window.close()
 
     def test_cleanup_dialog_builds_expected_decisions(self) -> None:
-        previous_language = current_language()
-        self.addCleanup(set_language, previous_language)
-        set_language("zh")
-
         def candidate(variant_id, family_id, name, *, allowed=True, keep=False):
             return {
                 "family_id": family_id,
