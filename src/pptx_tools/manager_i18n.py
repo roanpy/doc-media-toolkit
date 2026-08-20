@@ -845,5 +845,17 @@ TRANSLATIONS.update(
     {
         "点击执行“{}”。": 'Click to run "{}".',
         "当前选择：{}。点击切换其他选项。": "Current selection: {}. Click to switch to another option.",
+        "个文件未通过哈希核验，请运行库体检。": " file(s) did not pass hash verification; run Library Health.",
+        "个时间戳状态，重新关联 ": " timestamp status item(s); re-linked ",
+        "仍有 ": "Remaining: ",
+        "当前没有待校验或丢失的视频。": "No videos need verification or relinking.",
+        "待校验": "Needs verification",
+        "待校验（时间戳变化）": "Needs verification (timestamp changed)",
+        "文件时间戳与清单不同，需执行哈希核验：": "File timestamp differs from the manifest; hash verification required: ",
+        "核验 / 重新关联": "Verify / Relink",
+        "正在核验并重新关联视频": "Verifying and relinking videos",
+        "视频文件大小在入库后发生变化：": "Video file size changed after import: ",
+        "跨机器复制后按 SHA-256 核验时间戳变化；也可按哈希重新定位缺失视频并恢复路径关联。": "After copying between machines, verify timestamp changes with SHA-256; also relocate missing videos by hash and restore path links.",
+        "已核验并刷新 ": "Verified and refreshed ",
     }
 )

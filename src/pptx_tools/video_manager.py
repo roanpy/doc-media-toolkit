@@ -4545,7 +4545,10 @@ class VideoProject:
     def quarantine_abnormal_variant(self, variant_id: str) -> dict[str, Any]:
         """Isolate one unreadable, unused non-source version."""
         family, variant = self.find_variant(variant_id)
-        if not variant.get("probe_error") and self.status(variant) == "available":
+        if not variant.get("probe_error") and self.status(variant) not in {
+            "missing",
+            "modified",
+        }:
             raise ValueError("只能隔离文件异常的视频版本")
         if variant_id in {
             family.get("source_variant_id"),
@@ -5462,7 +5465,7 @@ class VideoProject:
         if path.stat().st_size != variant["size_bytes"]:
             return "modified"
         if variant.get("mtime_ns") and path.stat().st_mtime_ns != variant["mtime_ns"]:
-            return "modified"
+            return "metadata_drift"
         return "available"
 
 

@@ -2044,10 +2044,10 @@ class MainWindow(QMainWindow):
             tr("先用代码规则筛选候选，再由 AI 建议同源归并、主视频和命名；")
             + tr("视觉模型可额外参考三帧联系图，不会自动修改视频库。")
         )
-        self.relink_button = QPushButton(tr("查找丢失"))
+        self.relink_button = QPushButton(tr("核验 / 重新关联"))
         self.relink_button.setToolTip(
             tr(
-                "按哈希重新定位缺失视频并恢复路径关联；跨机器复制后也会核验内容并刷新时间戳状态。"
+                "跨机器复制后按 SHA-256 核验时间戳变化；也可按哈希重新定位缺失视频并恢复路径关联。"
             )
         )
         self.relink_button.clicked.connect(self.relink_missing)
@@ -2088,7 +2088,7 @@ class MainWindow(QMainWindow):
         for label, button in (
             (tr("重命名"), self.rename_button),
             (tr("移动文件"), self.move_button),
-            (tr("查找丢失"), self.relink_button),
+            (tr("核验 / 重新关联"), self.relink_button),
         ):
             action = self.more_actions_menu.addAction(label)
             action.triggered.connect(button.click)
@@ -2527,6 +2527,7 @@ class MainWindow(QMainWindow):
                 "available": tr("正常"),
                 "missing": tr("文件丢失"),
                 "modified": tr("文件已修改"),
+                "metadata_drift": tr("待校验（时间戳变化）"),
             }.get(self.project.status(target), tr("未知"))
         )
         self.detail_status.setText(f"{tr('状态　')}{status}")
@@ -2900,8 +2901,18 @@ class MainWindow(QMainWindow):
 
     def choose_open_project(self) -> None:
         directory = QFileDialog.getExistingDirectory(self, tr("打开视频库"))
-        if directory:
-            self.open_project(Path(directory))
+        if not directory:
+            return
+        root = Path(directory)
+        if not (root / "video-project.json").is_file():
+            nested = [
+                path.parent
+                for path in root.glob("*/video-project.json")
+                if path.is_file()
+            ]
+            if len(nested) == 1:
+                root = nested[0]
+        self.open_project(root)
 
     def open_project(self, root: Path, *, report_errors: bool = True) -> None:
         try:
@@ -2914,6 +2925,10 @@ class MainWindow(QMainWindow):
     def _project_opened(self, *, report_recovery: bool = True) -> None:
         assert self.project is not None
         self.settings.setValue("video_manager/last_project", str(self.project.root))
+        self.settings.sync()
+        self._close_detail_drawer()
+        self.library_filter_input.clear()
+        self.library_stat_buttons["all"].setChecked(True)
         recovered = self.project.recovered_from_backup
         warning = tr("  ·  ⚠ 已从备份恢复") if recovered else ""
         project_path = str(self.project.root)
@@ -2929,6 +2944,9 @@ class MainWindow(QMainWindow):
             + f"{tr('全局偏好：')}{self.settings.fileName()}"
         )
         self.append_log(f"{tr('已打开视频库：')}{self.project.root}", reveal=False)
+        self.log_shelf.setText(
+            f"{tr('状态与日志 · ')}{tr('已打开视频库：')}{self.project.root}"
+        )
         if recovered:
             message = tr(
                 "主视频库清单损坏或不可读，程序已使用最近的有效备份恢复。"
@@ -3258,8 +3276,10 @@ class MainWindow(QMainWindow):
             for variant in family["variants"]:
                 status = self.project.status(variant)
                 variant_statuses[variant["id"]] = status
-                if status != "available" or variant.get("probe_error"):
+                if status in {"missing", "modified"} or variant.get("probe_error"):
                     tags.add("abnormal")
+                elif status == "metadata_drift":
+                    tags.add("review")
             if tags:
                 tags.add("review")
             review_tags_by_family[family["id"]] = tags
@@ -3339,6 +3359,7 @@ class MainWindow(QMainWindow):
                         "available": tr("正常"),
                         "missing": tr("丢失"),
                         "modified": tr("已修改"),
+                        "metadata_drift": tr("待校验"),
                     }[variant_statuses[variant["id"]]]
                 )
                 child = QTreeWidgetItem(
@@ -4024,7 +4045,9 @@ class MainWindow(QMainWindow):
                     "health": (
                         tr("异常")
                         if item_variant.get("probe_error")
-                        or self.project.status(item_variant) != "available"
+                        or self.project.status(item_variant) in {"missing", "modified"}
+                        else tr("待校验")
+                        if self.project.status(item_variant) == "metadata_drift"
                         else tr("正常")
                     ),
                     "code_similarity": code_similarity,
@@ -4371,21 +4394,64 @@ class MainWindow(QMainWindow):
     def relink_missing(self) -> None:
         if self.project is None:
             return
-        root = QFileDialog.getExistingDirectory(
-            self, tr("选择搜索目录"), str(self.project.root)
+        metadata_drift_count = sum(
+            self.project.status(variant) == "metadata_drift"
+            for family in self.project.families()
+            for variant in family["variants"]
         )
-        if not root:
+        has_missing = any(
+            self.project.status(variant) == "missing"
+            for family in self.project.families()
+            for variant in family["variants"]
+        )
+        roots: list[Path] = []
+        if has_missing:
+            root = QFileDialog.getExistingDirectory(
+                self, tr("选择搜索目录"), str(self.project.root)
+            )
+            if not root:
+                return
+            roots.append(Path(root))
+        elif not metadata_drift_count:
+            self.append_log(tr("当前没有待校验或丢失的视频。"))
             return
+
+        def operation(progress, cancelled):
+            assert self.project is not None
+            relinked = self.project.relink_missing(
+                roots,
+                progress_callback=progress,
+                cancel_callback=cancelled,
+            )
+            remaining_drift = sum(
+                self.project.status(variant) == "metadata_drift"
+                for family in self.project.families()
+                for variant in family["variants"]
+            )
+            return {
+                "relinked": relinked,
+                "metadata_refreshed": max(0, metadata_drift_count - remaining_drift),
+                "remaining_drift": remaining_drift,
+            }
+
         self.run_operation(
-            tr("正在查找丢失视频"),
-            lambda progress, cancelled: self.project.relink_missing(
-                [Path(root)], progress_callback=progress, cancel_callback=cancelled
-            ),
+            tr("正在核验并重新关联视频"),
+            operation,
             self._relink_missing_finished,
         )
 
-    def _relink_missing_finished(self, result: list[dict[str, str]]) -> None:
-        self.append_log(f"{tr('已重新关联 ')}{len(result)}{tr(' 个视频版本。')}")
+    def _relink_missing_finished(self, result: dict[str, Any]) -> None:
+        relinked = list(result.get("relinked") or [])
+        refreshed = int(result.get("metadata_refreshed") or 0)
+        remaining = int(result.get("remaining_drift") or 0)
+        self.append_log(
+            f"{tr('已核验并刷新 ')}{refreshed}{tr(' 个时间戳状态，重新关联 ')}"
+            f"{len(relinked)}{tr(' 个视频版本。')}"
+        )
+        if remaining:
+            self.append_log(
+                f"{tr('仍有 ')}{remaining}{tr(' 个文件未通过哈希核验，请运行库体检。')}"
+            )
         self.refresh_views()
 
     def start_cleanup_scan(self) -> None:

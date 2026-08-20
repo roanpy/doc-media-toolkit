@@ -2205,7 +2205,9 @@ class VideoProjectTest(unittest.TestCase):
             path = project.variant_path(variant)
             path.touch()
 
-            self.assertEqual(project.status(variant), "modified")
+            self.assertEqual(project.status(variant), "metadata_drift")
+            with self.assertRaisesRegex(ValueError, "只能隔离文件异常"):
+                project.quarantine_abnormal_variant(variant["id"])
             self.assertEqual(project.relink_missing(), [])
             self.assertEqual(project.status(variant), "available")
             self.assertEqual(

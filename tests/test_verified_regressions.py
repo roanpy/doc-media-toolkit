@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import os
 import plistlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -2232,7 +2234,7 @@ class DesktopLifecycleTest(unittest.TestCase):
                     "文件与恢复",
                     "重命名",
                     "移动文件",
-                    "查找丢失",
+                    "核验 / 重新关联",
                     "异常处理",
                     "隔离异常",
                     "库维护",
@@ -2404,6 +2406,110 @@ class DesktopLifecycleTest(unittest.TestCase):
             window.choose_new_project()
         show_error.assert_called_once_with("permission denied")
         window.close()
+
+    def test_video_library_switches_to_nested_copy_and_resets_old_ui(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            first = VideoProject.create(root / "first", "First library")
+            wrapper = root / "copied-wrapper"
+            copied = wrapper / "copied-library"
+            shutil.copytree(first.root, copied)
+            window = VideoLibraryMainWindow()
+            try:
+                window.open_project(first.root)
+                window.library_filter_input.setText("old filter")
+                window.detail_drawer.show()
+                with (
+                    patch.object(
+                        QFileDialog,
+                        "getExistingDirectory",
+                        return_value=str(wrapper),
+                    ),
+                    patch.object(window, "show_error") as show_error,
+                ):
+                    window.choose_open_project()
+                show_error.assert_not_called()
+
+                self.assertEqual(window.project.root, copied.resolve())
+                self.assertIn(str(copied.resolve()), window.project_label.toolTip())
+                self.assertEqual(
+                    self.settings.value("video_manager/last_project", "", str),
+                    str(copied.resolve()),
+                )
+                self.assertEqual(window.library_filter_input.text(), "")
+                self.assertTrue(window.library_stat_buttons["all"].isChecked())
+                self.assertTrue(window.detail_drawer.isHidden())
+                self.assertIn(str(copied.resolve()), window.log_shelf.text())
+            finally:
+                window.close()
+
+    def test_copied_library_timestamp_drift_is_review_not_file_abnormal(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = VideoProject.create(Path(temp_dir) / "library")
+            video = project.root / "media" / "copy.mp4"
+            video.write_bytes(b"copied-video")
+            digest = hashlib.sha256(video.read_bytes()).hexdigest()
+            variant = {
+                "id": "variant-copy",
+                "label": "source",
+                "profile": "original",
+                "path": project.encode_path(video),
+                "sha256": digest,
+                "size_bytes": video.stat().st_size,
+                "mtime_ns": video.stat().st_mtime_ns,
+            }
+            project.families().append(
+                {
+                    "id": "family-copy",
+                    "name": "Copied video",
+                    "active_variant_id": variant["id"],
+                    "source_variant_id": variant["id"],
+                    "known_hashes": [digest],
+                    "source_hashes": [digest],
+                    "variants": [variant],
+                }
+            )
+            project.save()
+            stat = video.stat()
+            os.utime(video, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000_000))
+
+            window = VideoLibraryMainWindow()
+            try:
+                window.project = project
+                window.refresh_views()
+                child = window.video_tree.topLevelItem(0).child(0)
+                self.assertEqual(child.text(5), "待校验")
+                self.assertEqual(
+                    window.library_stat_buttons["review"].text(), "待核对 1"
+                )
+                self.assertEqual(
+                    window.library_stat_buttons["abnormal"].text(), "文件异常 0"
+                )
+
+                def run_now(_label, operation, done):
+                    done(operation(lambda _message: None, lambda: False))
+
+                with (
+                    patch.object(window, "run_operation", side_effect=run_now),
+                    patch.object(QFileDialog, "getExistingDirectory") as directory,
+                ):
+                    window.relink_missing()
+                directory.assert_not_called()
+                self.assertEqual(project.status(variant), "available")
+                refreshed_child = window.video_tree.topLevelItem(0).child(0)
+                self.assertEqual(refreshed_child.text(5), "正常")
+                # The family remains reviewable because it has no PPTX reference;
+                # timestamp drift no longer contributes to file abnormalities.
+                self.assertEqual(
+                    window.library_stat_buttons["review"].text(), "待核对 1"
+                )
+                self.assertEqual(
+                    window.library_stat_buttons["abnormal"].text(), "文件异常 0"
+                )
+            finally:
+                window.close()
 
     def test_cleanup_dialog_builds_expected_decisions(self) -> None:
         def candidate(variant_id, family_id, name, *, allowed=True, keep=False):
