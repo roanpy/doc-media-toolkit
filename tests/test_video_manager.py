@@ -2212,6 +2212,46 @@ class VideoProjectTest(unittest.TestCase):
                 VideoProject.open(project.root).status(variant), "available"
             )
 
+    def test_refresh_modified_variants_rebaselines_timestamp_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            deck_path = root / "source.pptx"
+            make_video_pptx(deck_path, b"drift-video", "Drift")
+            project = VideoProject.create(root / "project")
+            with patch("pptx_tools.video_manager.probe_video", side_effect=no_probe):
+                project.add_deck(deck_path)
+            variant = project.families()[0]["variants"][0]
+            project.variant_path(variant).touch()
+
+            self.assertEqual(project.status(variant), "modified")
+            result = project.refresh_modified_variants()
+
+            self.assertEqual(result, {"refreshed": 1, "stale": 0})
+            self.assertEqual(
+                VideoProject.open(project.root).status(variant), "available"
+            )
+
+    def test_refresh_modified_variants_keeps_truly_changed_files_flagged(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            deck_path = root / "source.pptx"
+            make_video_pptx(deck_path, b"changed-video", "Changed")
+            project = VideoProject.create(root / "project")
+            with patch("pptx_tools.video_manager.probe_video", side_effect=no_probe):
+                project.add_deck(deck_path)
+            variant = project.families()[0]["variants"][0]
+            path = project.variant_path(variant)
+            with path.open("ab") as handle:
+                handle.write(b"tampered")
+
+            self.assertEqual(project.status(variant), "modified")
+            result = project.refresh_modified_variants()
+
+            self.assertEqual(result, {"refreshed": 0, "stale": 1})
+            self.assertEqual(
+                VideoProject.open(project.root).status(variant), "modified"
+            )
+
     def test_detach_and_restore_keep_slide_xml_and_original_video(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
