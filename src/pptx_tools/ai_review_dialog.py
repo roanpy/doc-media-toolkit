@@ -51,7 +51,9 @@ class AISuggestionDialog(QDialog):
             display = tr("、").join(value) if isinstance(value, list) else str(value)
             old = current.get(key)
             old_display = (
-                tr("、").join(old) if isinstance(old, list) else str(old or tr("未填写"))
+                tr("、").join(old)
+                if isinstance(old, list)
+                else str(old or tr("未填写"))
             )
             checkbox = QCheckBox(f"{label}{tr('：')}{old_display}  →  {display}")
             checkbox.setChecked(True)
@@ -67,9 +69,9 @@ class AISuggestionDialog(QDialog):
             names = [item_names.get(item_id, item_id) for item_id in group["item_ids"]]
             primary = item_names.get(group["primary_id"], group["primary_id"])
             detail = QLabel(
-                f"{' + '.join(names)}\n" +
-                f"{tr('建议主资源：')}{primary}{tr('（')}{group['confidence']:.0%}{tr('）')}\n" +
-                f"{tr('理由：')}{group['reason'] or tr('未说明')}"
+                f"{' + '.join(names)}\n"
+                + f"{tr('建议主资源：')}{primary}{tr('（')}{group['confidence']:.0%}{tr('）')}\n"
+                + f"{tr('理由：')}{group['reason'] or tr('未说明')}"
             )
             detail.setWordWrap(True)
             detail.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
