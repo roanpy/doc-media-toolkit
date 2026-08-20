@@ -2229,6 +2229,7 @@ class DesktopLifecycleTest(unittest.TestCase):
                     "重命名",
                     "移动文件",
                     "查找丢失",
+                    "刷新状态",
                     "异常处理",
                     "隔离异常",
                     "库维护",

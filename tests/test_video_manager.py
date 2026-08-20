@@ -18,6 +18,7 @@ from pptx_output_watermark.pptx_video_support import scan_embedded_videos
 from pptx_tools.video_manager import (
     FAMILY_MOVE_JOURNAL_NAME,
     VideoProject,
+    _is_absolute_stored_path,
     build_parser,
     _transcode_high_quality_mp4,
     normalize_library_category,
@@ -199,6 +200,16 @@ class BackfillTranscodeTierTest(unittest.TestCase):
                 self.assertIs(vm._audio_stream_usable(Path("x.mp4")), expected, payload)
         with patch.object(vm, "run_binary", side_effect=RuntimeError("boom")):
             self.assertIs(vm._audio_stream_usable(Path("x.mp4")), True)
+
+
+class StoredPathPortabilityTest(unittest.TestCase):
+    def test_absolute_paths_are_recognized_across_platforms(self) -> None:
+        self.assertTrue(_is_absolute_stored_path("/Volumes/example/source.pptx"))
+        self.assertTrue(_is_absolute_stored_path(r"X:\Portable\source.pptx"))
+        self.assertTrue(_is_absolute_stored_path(r"\\server\share\source.pptx"))
+        self.assertTrue(_is_absolute_stored_path("~/source.pptx"))
+        self.assertFalse(_is_absolute_stored_path("../outside/source.pptx"))
+        self.assertFalse(_is_absolute_stored_path("media/source.mp4"))
 
 
 class BackfillCompatibilityTest(unittest.TestCase):
@@ -2179,6 +2190,67 @@ class VideoProjectTest(unittest.TestCase):
             self.assertEqual(len(results), 1)
             self.assertEqual(project.variant_path(variant), moved.resolve())
             self.assertEqual(sha256_file(moved), variant["sha256"])
+
+    def test_relink_refreshes_copy_changed_timestamp_after_hash_verification(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            deck_path = root / "source.pptx"
+            make_video_pptx(deck_path, b"copied-video", "Copied")
+            project = VideoProject.create(root / "project")
+            with patch("pptx_tools.video_manager.probe_video", side_effect=no_probe):
+                project.add_deck(deck_path)
+            variant = project.families()[0]["variants"][0]
+            path = project.variant_path(variant)
+            path.touch()
+
+            self.assertEqual(project.status(variant), "modified")
+            self.assertEqual(project.relink_missing(), [])
+            self.assertEqual(project.status(variant), "available")
+            self.assertEqual(
+                VideoProject.open(project.root).status(variant), "available"
+            )
+
+    def test_refresh_modified_variants_rebaselines_timestamp_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            deck_path = root / "source.pptx"
+            make_video_pptx(deck_path, b"drift-video", "Drift")
+            project = VideoProject.create(root / "project")
+            with patch("pptx_tools.video_manager.probe_video", side_effect=no_probe):
+                project.add_deck(deck_path)
+            variant = project.families()[0]["variants"][0]
+            project.variant_path(variant).touch()
+
+            self.assertEqual(project.status(variant), "modified")
+            result = project.refresh_modified_variants()
+
+            self.assertEqual(result, {"refreshed": 1, "stale": 0})
+            self.assertEqual(
+                VideoProject.open(project.root).status(variant), "available"
+            )
+
+    def test_refresh_modified_variants_keeps_truly_changed_files_flagged(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            deck_path = root / "source.pptx"
+            make_video_pptx(deck_path, b"changed-video", "Changed")
+            project = VideoProject.create(root / "project")
+            with patch("pptx_tools.video_manager.probe_video", side_effect=no_probe):
+                project.add_deck(deck_path)
+            variant = project.families()[0]["variants"][0]
+            path = project.variant_path(variant)
+            with path.open("ab") as handle:
+                handle.write(b"tampered")
+
+            self.assertEqual(project.status(variant), "modified")
+            result = project.refresh_modified_variants()
+
+            self.assertEqual(result, {"refreshed": 0, "stale": 1})
+            self.assertEqual(
+                VideoProject.open(project.root).status(variant), "modified"
+            )
 
     def test_detach_and_restore_keep_slide_xml_and_original_video(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

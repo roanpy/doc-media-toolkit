@@ -16,7 +16,7 @@ from array import array
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import asdict
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from types import SimpleNamespace
 from typing import Any
 from zipfile import BadZipFile, ZipFile
@@ -47,6 +47,15 @@ ProgressCallback = Callable[[str], None]
 CancelCallback = Callable[[], bool]
 PlaceholderBuilder = Callable[[Path, Path, dict[str, Any]], None]
 VIDEO_SUFFIXES = {".mp4", ".mov", ".m4v", ".wmv", ".avi", ".mkv", ".webm"}
+
+
+def _is_absolute_stored_path(value: str) -> bool:
+    """Recognize native and foreign-platform absolute paths."""
+    return (
+        Path(value).expanduser().is_absolute()
+        or PurePosixPath(value).is_absolute()
+        or PureWindowsPath(value).is_absolute()
+    )
 
 
 def utc_now() -> str:
@@ -980,7 +989,7 @@ class VideoProject:
 
         def validate_stored_path(value: str, label: str) -> None:
             stored = Path(value).expanduser()
-            if stored.is_absolute():
+            if _is_absolute_stored_path(value):
                 return
             try:
                 (path.parent / stored).resolve().relative_to(path.parent.resolve())
@@ -1389,7 +1398,9 @@ class VideoProject:
 
     def resolve_path(self, value: str) -> Path:
         path = Path(value).expanduser()
-        return path.resolve() if path.is_absolute() else (self.root / path).resolve()
+        if _is_absolute_stored_path(value):
+            return path.resolve() if path.is_absolute() else path
+        return (self.root / path).resolve()
 
     def deck_source_path(self, deck: dict[str, Any]) -> Path:
         return self.resolve_path(deck["source_path"])
@@ -3845,6 +3856,51 @@ class VideoProject:
             self.save()
             self.record("variants_relinked", count=len(results))
         return results
+
+    def refresh_modified_variants(
+        self,
+        *,
+        progress_callback: ProgressCallback | None = None,
+        cancel_callback: CancelCallback | None = None,
+    ) -> dict[str, int]:
+        """Re-baseline variants whose bytes are intact but metadata drifted.
+
+        Copying a library between machines rewrites mtimes, which marks every
+        variant "modified" even though the content is unchanged. This verifies
+        size and SHA-256, then adopts the current mtime; variants that fail
+        verification stay "modified".
+        """
+        refreshed = 0
+        stale = 0
+        drifted = [
+            (family, variant)
+            for family in self.families()
+            for variant in family["variants"]
+            if self.status(variant) == "modified"
+        ]
+        for index, (family, variant) in enumerate(drifted, start=1):
+            _check_cancelled(cancel_callback)
+            if progress_callback and (
+                index == 1 or index == len(drifted) or index % 10 == 0
+            ):
+                progress_callback(f"{family['name']}: {index}/{len(drifted)}")
+            path = self.variant_path(variant)
+            try:
+                if (
+                    path.stat().st_size != variant["size_bytes"]
+                    or sha256_file(path) != variant["sha256"]
+                ):
+                    stale += 1
+                    continue
+            except OSError:
+                stale += 1
+                continue
+            variant["mtime_ns"] = path.stat().st_mtime_ns
+            refreshed += 1
+        if refreshed:
+            self.save()
+            self.record("variant_metadata_refreshed", count=refreshed)
+        return {"refreshed": refreshed, "stale": stale}
 
     # ------------------------------------------------------------------
     # Library cleanup ("整理视频库")
