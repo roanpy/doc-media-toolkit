@@ -2831,10 +2831,49 @@ def patch_output_pptx(
                 with file_path.open("rb") as source:
                     _copy_fileobj_to_zip(source, zout, output_info)
 
+        validate_pptx_playback_structure(base_pptx, tmp_path)
         tmp_path.replace(output_pptx)
     finally:
         if tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
+
+
+def validate_pptx_playback_structure(source_path: Path, output_path: Path) -> None:
+    """Fail if media replacement changes slide playback structure."""
+    with ZipFile(source_path, "r") as source, ZipFile(output_path, "r") as output:
+        slide_parts = [
+            name
+            for name in source.namelist()
+            if name.startswith("ppt/slides/slide") and name.endswith(".xml")
+        ]
+        for name in slide_parts:
+            if output.read(name) != source.read(name):
+                raise RuntimeError(
+                    f"PPTX slide XML changed during media replacement: {name}"
+                )
+
+        relationship_parts = [
+            name
+            for name in source.namelist()
+            if name.startswith("ppt/slides/_rels/slide") and name.endswith(".xml.rels")
+        ]
+        for name in relationship_parts:
+            before = SafeET.fromstring(source.read(name))
+            after = SafeET.fromstring(output.read(name))
+
+            def identities(root: ET.Element) -> dict[str, tuple[str, str]]:
+                return {
+                    rel.attrib["Id"]: (
+                        rel.attrib.get("Type", ""),
+                        rel.attrib.get("TargetMode", ""),
+                    )
+                    for rel in root.findall("pr:Relationship", REL_NS)
+                }
+
+            if identities(after) != identities(before):
+                raise RuntimeError(
+                    f"PPTX slide relationship identities changed during media replacement: {name}"
+                )
 
 
 def video_report_entry(asset: VideoAsset, config: RuntimeConfig) -> dict[str, Any]:

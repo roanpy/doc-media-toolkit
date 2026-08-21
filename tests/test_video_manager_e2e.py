@@ -33,9 +33,9 @@ TIMING_TEMPLATE = (
     "<p:timing><p:tnLst><p:par>"
     '<p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot">'
     "<p:childTnLst>"
-    '<p:video><p:cMediaNode vol="80000">'
-    '<p:cTn id="2" fill="hold" display="0">'
-    '<p:stCondLst><p:cond delay="indefinite"/></p:stCondLst>'
+    '<p:video><p:cMediaNode vol="0" mute="1" showWhenStopped="0">'
+    '<p:cTn id="2" fill="hold" display="0" repeatCount="indefinite">'
+    '<p:stCondLst><p:cond delay="0"/></p:stCondLst>'
     "</p:cTn>"
     "<p:tgtEl><p:spid>{shape_id}</p:spid></p:tgtEl>"
     "</p:cMediaNode></p:video>"
@@ -462,6 +462,10 @@ class VideoManagerEndToEndTest(unittest.TestCase):
             inject_video_animation(source, slide_path, asset.occurrences[0].shape_id)
             with ZipFile(source) as archive:
                 original_slide_xml = archive.read(slide_path)
+            self.assertIn(b'mute="1"', original_slide_xml)
+            self.assertIn(b'vol="0"', original_slide_xml)
+            self.assertIn(b'delay="0"', original_slide_xml)
+            self.assertIn(b'repeatCount="indefinite"', original_slide_xml)
 
             library = VideoProject.create(root / "library")
             archived = library.archive_pptx_videos(source)
