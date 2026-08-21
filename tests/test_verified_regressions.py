@@ -1474,16 +1474,26 @@ class DesktopLifecycleTest(unittest.TestCase):
             )
             self.assertEqual(window.assessment_controls_layout.spacing(), 16)
             self.assertEqual(window.assessment_actions_layout.spacing(), 16)
-            for width, expected_actions_visible in (
-                (880, True),
-                (1000, True),
-                (1100, True),
-                (1180, True),
-                (1280, False),
-                (1440, False),
-            ):
+            for width in (880, 1000, 1100, 1180, 1280, 1440):
                 window.resize(width, 620)
                 QApplication.processEvents()
+                compact = width < 1180
+                left_width = 260 if compact else 320
+                root_margins = window.root_layout.contentsMargins()
+                settings_margins = window.settings_card.layout().contentsMargins()
+                available = (
+                    width
+                    - root_margins.left()
+                    - root_margins.right()
+                    - left_width
+                    - window.body_layout.spacing()
+                    - settings_margins.left()
+                    - settings_margins.right()
+                    - window.settings_card.frameWidth() * 2
+                )
+                expected_actions_visible = (
+                    available < window._assessment_row_required_width()
+                )
                 self.assertEqual(
                     window.assessment_row_actions_widget.isVisibleTo(window),
                     expected_actions_visible,
