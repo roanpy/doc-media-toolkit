@@ -32,7 +32,12 @@ class StandaloneBuildTests(unittest.TestCase):
     def test_python_license_lookup_supports_nested_runtime_docs(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
-            nested = root / "share" / "doc" / "python3.12"
+            nested = (
+                root
+                / "share"
+                / "doc"
+                / f"python{sys.version_info[0]}.{sys.version_info[1]}"
+            )
             nested.mkdir(parents=True)
             license_file = nested / "LICENSE.txt"
             license_file.write_text("PSF", encoding="utf-8")
