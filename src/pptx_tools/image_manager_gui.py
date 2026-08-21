@@ -58,12 +58,16 @@ QLabel#imagePreview {
 """
 )
 HEALTH_FILTER_TITLES = {
-    "all": tr("全部"),
-    "duplicate_origins": tr("重复来源"),
-    "similar": tr("相似"),
-    "undersized": tr("过小"),
-    "no_origin": tr("无来源"),
+    "all": "全部",
+    "duplicate_origins": "重复来源",
+    "similar": "相似",
+    "undersized": "过小",
+    "no_origin": "无来源",
 }
+
+
+def _health_filter_title(key: str) -> str:
+    return tr(HEALTH_FILTER_TITLES[key])
 
 
 class MetadataDialog(QDialog):
@@ -551,8 +555,8 @@ class MainWindow(QMainWindow):
         filter_row.addWidget(QLabel(tr("查找")))
         filter_row.addWidget(self.library_filter_input)
         self.health_filter_combo = QComboBox()
-        for key, title in HEALTH_FILTER_TITLES.items():
-            self.health_filter_combo.addItem(title, key)
+        for key in HEALTH_FILTER_TITLES:
+            self.health_filter_combo.addItem(_health_filter_title(key), key)
         self.health_filter_combo.setToolTip(
             tr("按图片健康状态筛选；只影响当前列表，不修改图片库。")
         )
@@ -971,9 +975,9 @@ class MainWindow(QMainWindow):
         self.tree.clear()
         if self.project is None:
             for index, (key, button) in enumerate(self.health_filter_buttons.items()):
-                button.setText(f"{HEALTH_FILTER_TITLES[key]} 0")
+                button.setText(f"{_health_filter_title(key)} 0")
                 self.health_filter_combo.setItemText(
-                    index, f"{HEALTH_FILTER_TITLES[key]} 0"
+                    index, f"{_health_filter_title(key)} 0"
                 )
             self.pending_cleanup_button.setText(tr("待清理 0"))
             self.pending_cleanup_action.setText(tr("待清理 (0)"))
@@ -991,9 +995,9 @@ class MainWindow(QMainWindow):
             min_height=self.min_height_spin.value(),
         )
         for index, (key, button) in enumerate(self.health_filter_buttons.items()):
-            button.setText(f"{HEALTH_FILTER_TITLES[key]} {counts[key]}")
+            button.setText(f"{_health_filter_title(key)} {counts[key]}")
             self.health_filter_combo.setItemText(
-                index, f"{HEALTH_FILTER_TITLES[key]} {counts[key]}"
+                index, f"{_health_filter_title(key)} {counts[key]}"
             )
         pending = self.project.pending_cleanup()
         pending_size = sum(item["size_bytes"] for item in pending)

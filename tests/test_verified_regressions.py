@@ -86,6 +86,7 @@ from pptx_tools.image_manager_gui import (
     SimilarImageReviewDialog,
 )
 from pptx_tools.video_manager import VideoProject
+from pptx_tools.manager_i18n import current_language, set_language
 from pptx_tools.video_manager_gui import (
     CleanupDialog,
     MainWindow as VideoLibraryMainWindow,
@@ -572,6 +573,8 @@ class DesktopLifecycleTest(unittest.TestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self) -> None:
+        self.addCleanup(set_language, current_language())
+        set_language("zh")
         self.settings = QSettings("Doc Media Toolkit", "Doc Media Toolkit")
         self.last_project = self.settings.value("video_manager/last_project")
         self.library_sort = self.settings.value("video_library/sort")
