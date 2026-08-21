@@ -27,7 +27,30 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install Linux GUI runtime
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 poppler-utils
+      - name: Install Poppler on macOS
+        if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: brew install poppler
+      - name: Install Poppler on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '26.02.0-0'
+          $assetName = "Release-$version.zip"
+          $expectedSha256 = '993e4a94376ed712fafc7058d724ea0b943d118bbd2305cd9ed55174eb85cda5'
+          $downloadUrl = "https://github.com/oschwartz10612/poppler-windows/releases/download/v$version/$assetName"
+          $zipPath = Join-Path $env:RUNNER_TEMP $assetName
+          $extractPath = Join-Path $env:RUNNER_TEMP 'poppler-windows'
+          Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
+          $actualSha256 = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualSha256 -ne $expectedSha256) { throw "Poppler archive checksum mismatch: $actualSha256" }
+          Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+          $pdfimages = Get-ChildItem $extractPath -Recurse -Filter pdfimages.exe | Select-Object -First 1
+          if (-not $pdfimages) { throw 'Poppler pdfimages.exe was not found after installation.' }
+          $pdfimages.Directory.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Install locked dependencies
         run: |
           python -m pip install uv==0.12.3

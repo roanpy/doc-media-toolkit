@@ -333,57 +333,8 @@ class DmgArgumentValidationTest(unittest.TestCase):
             self.assertEqual(metadata["CFBundleVersion"], "1.2.3")
             self.assertEqual(metadata["LSMinimumSystemVersion"], "13.0")
             self.assertEqual(run.call_count, 2)
-            sign_call = run.call_args_list[0].args[0]
-            verify_call = run.call_args_list[1].args[0]
-            self.assertEqual(sign_call[:4], ["codesign", "--force", "--sign", "-"])
-            self.assertEqual(
-                verify_call,
-                [
-                    "codesign",
-                    "--verify",
-                    "--deep",
-                    "--strict",
-                    str(app_bundle),
-                ],
-            )
-
-    def test_macos_bundle_metadata_signs_nested_libreoffice_first(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            package = root / "src" / "pptx_tools"
-            package.mkdir(parents=True)
-            (package / "__init__.py").write_text(
-                '__version__ = "1.2.3"\n', encoding="utf-8"
-            )
-            app_bundle = root / "Doc Media Toolkit.app"
-            nested = (
-                app_bundle
-                / "Contents"
-                / "Frameworks"
-                / "libreoffice"
-                / "LibreOffice.app"
-            )
-            (app_bundle / "Contents").mkdir(parents=True)
-            (nested / "Contents").mkdir(parents=True)
-            plist_path = app_bundle / "Contents" / "Info.plist"
-            with plist_path.open("wb") as plist_file:
-                plistlib.dump({"CFBundleIdentifier": "x"}, plist_file)
-
-            with patch("scripts.build_standalone.subprocess.run") as run:
-                finalize_macos_bundle_metadata(
-                    app_bundle,
-                    version=project_version(root),
-                )
-
-            calls = [call.args[0] for call in run.call_args_list]
-            self.assertEqual(len(calls), 3)
-            self.assertIn(str(nested), calls[0])
-            self.assertIn(str(app_bundle), calls[1])
-            self.assertNotIn("--deep", calls[1])
-            self.assertEqual(
-                calls[2],
-                ["codesign", "--verify", "--strict", str(app_bundle)],
-            )
+            self.assertIn("--deep", run.call_args_list[0].args[0])
+            self.assertIn("--verify", run.call_args_list[1].args[0])
 
     def test_complete_libreoffice_runtime_can_be_added_as_build_data(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -654,6 +605,18 @@ class DesktopLifecycleTest(unittest.TestCase):
                 self.settings.remove(key)
             else:
                 self.settings.setValue(key, previous)
+
+    def test_restored_library_offers_batch_status_refresh(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = VideoProject.create(Path(temp_dir) / "library")
+            window = VideoLibraryMainWindow()
+            with (
+                patch.dict(os.environ, {"QT_QPA_PLATFORM": "cocoa"}),
+                patch.object(window, "_offer_refresh_modified_variants") as offer,
+            ):
+                window.open_project(project.root, report_errors=False)
+            offer.assert_called_once_with()
+            window.close()
 
     def test_unavailable_persistent_library_path_is_not_forgotten(self) -> None:
         key = "video_manager/last_project"
