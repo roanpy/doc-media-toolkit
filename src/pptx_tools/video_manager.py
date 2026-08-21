@@ -3865,10 +3865,9 @@ class VideoProject:
     ) -> dict[str, int]:
         """Re-baseline variants whose bytes are intact but metadata drifted.
 
-        Copying a library between machines rewrites mtimes, which marks every
-        variant "modified" even though the content is unchanged. This verifies
-        size and SHA-256, then adopts the current mtime; variants that fail
-        verification stay "modified".
+        Copying a library between machines rewrites mtimes. This verifies size
+        and SHA-256, then adopts the current mtime; truly changed variants stay
+        "modified".
         """
         refreshed = 0
         stale = 0
@@ -3876,7 +3875,7 @@ class VideoProject:
             (family, variant)
             for family in self.families()
             for variant in family["variants"]
-            if self.status(variant) == "modified"
+            if self.status(variant) == "metadata_drift"
         ]
         for index, (family, variant) in enumerate(drifted, start=1):
             _check_cancelled(cancel_callback)
@@ -4590,7 +4589,10 @@ class VideoProject:
     def quarantine_abnormal_variant(self, variant_id: str) -> dict[str, Any]:
         """Isolate one unreadable, unused non-source version."""
         family, variant = self.find_variant(variant_id)
-        if not variant.get("probe_error") and self.status(variant) == "available":
+        if not variant.get("probe_error") and self.status(variant) not in {
+            "missing",
+            "modified",
+        }:
             raise ValueError("只能隔离文件异常的视频版本")
         if variant_id in {
             family.get("source_variant_id"),
@@ -5507,7 +5509,7 @@ class VideoProject:
         if path.stat().st_size != variant["size_bytes"]:
             return "modified"
         if variant.get("mtime_ns") and path.stat().st_mtime_ns != variant["mtime_ns"]:
-            return "modified"
+            return "metadata_drift"
         return "available"
 
 

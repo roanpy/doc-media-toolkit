@@ -2538,6 +2538,7 @@ class MainWindow(QMainWindow):
                 "available": tr("正常"),
                 "missing": tr("文件丢失"),
                 "modified": tr("文件已修改"),
+                "metadata_drift": tr("待校验（时间戳变化）"),
             }.get(self.project.status(target), tr("未知"))
         )
         self.detail_status.setText(f"{tr('状态　')}{status}")
@@ -2916,6 +2917,15 @@ class MainWindow(QMainWindow):
 
     def open_project(self, root: Path, *, report_errors: bool = True) -> None:
         try:
+            root = Path(root).expanduser().resolve()
+            if not (root / "video-project.json").is_file():
+                nested = [
+                    manifest.parent
+                    for manifest in root.glob("*/video-project.json")
+                    if manifest.is_file()
+                ]
+                if len(nested) == 1:
+                    root = nested[0]
             self.project = VideoProject.open(root)
             self._project_opened(report_recovery=report_errors)
         except Exception as exc:
@@ -2925,6 +2935,10 @@ class MainWindow(QMainWindow):
     def _project_opened(self, *, report_recovery: bool = True) -> None:
         assert self.project is not None
         self.settings.setValue("video_manager/last_project", str(self.project.root))
+        self.settings.sync()
+        self._close_detail_drawer()
+        self.library_filter_input.clear()
+        self.library_stat_buttons["all"].setChecked(True)
         recovered = self.project.recovered_from_backup
         warning = tr("  ·  ⚠ 已从备份恢复") if recovered else ""
         project_path = str(self.project.root)
@@ -2940,6 +2954,9 @@ class MainWindow(QMainWindow):
             + f"{tr('全局偏好：')}{self.settings.fileName()}"
         )
         self.append_log(f"{tr('已打开视频库：')}{self.project.root}", reveal=False)
+        self.log_shelf.setText(
+            f"{tr('状态与日志 · ')}{tr('已打开视频库：')}{self.project.root}"
+        )
         if recovered:
             message = tr(
                 "主视频库清单损坏或不可读，程序已使用最近的有效备份恢复。"
@@ -3271,8 +3288,10 @@ class MainWindow(QMainWindow):
             for variant in family["variants"]:
                 status = self.project.status(variant)
                 variant_statuses[variant["id"]] = status
-                if status != "available" or variant.get("probe_error"):
+                if status in {"missing", "modified"} or variant.get("probe_error"):
                     tags.add("abnormal")
+                elif status == "metadata_drift":
+                    tags.add("review")
             if tags:
                 tags.add("review")
             review_tags_by_family[family["id"]] = tags
@@ -3352,6 +3371,7 @@ class MainWindow(QMainWindow):
                         "available": tr("正常"),
                         "missing": tr("丢失"),
                         "modified": tr("已修改"),
+                        "metadata_drift": tr("待校验"),
                     }[variant_statuses[variant["id"]]]
                 )
                 child = QTreeWidgetItem(
@@ -4037,7 +4057,9 @@ class MainWindow(QMainWindow):
                     "health": (
                         tr("异常")
                         if item_variant.get("probe_error")
-                        or self.project.status(item_variant) != "available"
+                        or self.project.status(item_variant) in {"missing", "modified"}
+                        else tr("待校验")
+                        if self.project.status(item_variant) == "metadata_drift"
                         else tr("正常")
                     ),
                     "code_similarity": code_similarity,
@@ -4420,7 +4442,7 @@ class MainWindow(QMainWindow):
         if self.project is None:
             return 0
         return sum(
-            self.project.status(variant) == "modified"
+            self.project.status(variant) == "metadata_drift"
             for family in self.project.families()
             for variant in family["variants"]
         )
@@ -4433,7 +4455,7 @@ class MainWindow(QMainWindow):
             self,
             QMessageBox.Icon.Question,
             tr("刷新状态"),
-            f"{tr('检测到 ')}{count}{tr(' 个版本被标记为“已修改”。')}\n"
+            f"{tr('检测到 ')}{count}{tr(' 个版本仅文件时间戳发生变化，内容尚未核验。')}\n"
             + tr(
                 "如果视频库是整体复制到本机的，通常只是文件时间戳变化，内容并未改动。\n"
             )
@@ -4449,7 +4471,7 @@ class MainWindow(QMainWindow):
             return
         count = self._modified_variant_count()
         if count == 0:
-            self.append_log(tr("没有标记为“已修改”的版本，无需刷新。"))
+            self.append_log(tr("没有待校验的时间戳变化版本，无需刷新。"))
             return
         self.run_operation(
             f"{tr('正在核验 ')}{count}{tr(' 个“已修改”版本的文件哈希…')}",

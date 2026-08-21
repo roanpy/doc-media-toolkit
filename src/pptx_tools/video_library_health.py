@@ -122,7 +122,7 @@ def audit_video_project(
                     )
                 else:
                     available_count += 1
-                    if status == "modified":
+                    if status == "metadata_drift":
                         metadata_drift_count += 1
                         issues.append(
                             _issue(
@@ -134,13 +134,25 @@ def audit_video_project(
                                 path=str(path),
                             )
                         )
+            elif status == "metadata_drift":
+                metadata_drift_count += 1
+                issues.append(
+                    _issue(
+                        "warning",
+                        "variant_metadata_drift",
+                        f"{tr('文件时间戳与清单不同，需执行哈希核验：')}{path}",
+                        family_id=family_id,
+                        variant_id=variant_id,
+                        path=str(path),
+                    )
+                )
             elif status == "modified":
                 modified_count += 1
                 issues.append(
                     _issue(
                         "error",
                         "modified_variant",
-                        f"{tr('视频文件大小或时间戳在入库后发生变化：')}{path}",
+                        f"{tr('视频文件大小在入库后发生变化：')}{path}",
                         family_id=family_id,
                         variant_id=variant_id,
                         path=str(path),
