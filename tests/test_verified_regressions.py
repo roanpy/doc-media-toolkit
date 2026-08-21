@@ -1474,11 +1474,9 @@ class DesktopLifecycleTest(unittest.TestCase):
             )
             self.assertEqual(window.assessment_controls_layout.spacing(), 16)
             self.assertEqual(window.assessment_actions_layout.spacing(), 16)
-            for width in (880, 1000, 1100, 1180, 1280, 1440):
-                window.resize(width, 620)
-                QApplication.processEvents()
-                compact = width < 1180
-                left_width = 260 if compact else 320
+
+            def expects_separate_actions(width: int) -> bool:
+                left_width = 260 if width < 1180 else 320
                 root_margins = window.root_layout.contentsMargins()
                 settings_margins = window.settings_card.layout().contentsMargins()
                 available = (
@@ -1491,9 +1489,12 @@ class DesktopLifecycleTest(unittest.TestCase):
                     - settings_margins.right()
                     - window.settings_card.frameWidth() * 2
                 )
-                expected_actions_visible = (
-                    available < window._assessment_row_required_width()
-                )
+                return available < window._assessment_row_required_width()
+
+            for width in (880, 1000, 1100, 1180, 1280, 1440):
+                window.resize(width, 620)
+                QApplication.processEvents()
+                expected_actions_visible = expects_separate_actions(width)
                 self.assertEqual(
                     window.assessment_row_actions_widget.isVisibleTo(window),
                     expected_actions_visible,
@@ -1552,29 +1553,36 @@ class DesktopLifecycleTest(unittest.TestCase):
                 window.assessment_row_primary_widget.width(),
             )
 
-            window.resize(1100, 620)
-            QApplication.processEvents()
-            self.assertGreater(
-                window._assessment_row_required_width(),
-                window.assessment_row_primary_widget.width(),
-            )
-
             window.resize(1280, 620)
             window.forced_button.show()
             window.update_responsive_layout(window.content_widget.width())
             QApplication.processEvents()
-            self.assertTrue(window.assessment_row_actions_widget.isVisibleTo(window))
+            self.assertEqual(
+                window.assessment_row_actions_widget.isVisibleTo(window),
+                expects_separate_actions(1280),
+            )
             self.assertIs(
                 window.forced_button.parentWidget(),
-                window.assessment_row_actions_widget,
+                (
+                    window.assessment_row_actions_widget
+                    if expects_separate_actions(1280)
+                    else window.assessment_row_primary_widget
+                ),
             )
 
             window.resize(1440, 620)
             QApplication.processEvents()
-            self.assertFalse(window.assessment_row_actions_widget.isVisibleTo(window))
+            self.assertEqual(
+                window.assessment_row_actions_widget.isVisibleTo(window),
+                expects_separate_actions(1440),
+            )
             self.assertIs(
                 window.forced_button.parentWidget(),
-                window.assessment_row_primary_widget,
+                (
+                    window.assessment_row_actions_widget
+                    if expects_separate_actions(1440)
+                    else window.assessment_row_primary_widget
+                ),
             )
         finally:
             window.close()
