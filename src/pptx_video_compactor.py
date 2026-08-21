@@ -1534,8 +1534,11 @@ def consolidate_exact_duplicate_images(
         source = Path(asset.extracted_path)
         if not source.is_file():
             continue
+        hasher = hashlib.sha256()
         with source.open("rb") as handle:
-            digest = hashlib.file_digest(handle, "sha256").hexdigest()
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                hasher.update(chunk)
+        digest = hasher.hexdigest()
         identity = (digest, source.suffix.lower())
         canonical = canonical_by_identity.get(identity)
         if canonical is None:
