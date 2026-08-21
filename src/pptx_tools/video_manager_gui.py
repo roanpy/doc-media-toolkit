@@ -2948,7 +2948,7 @@ class MainWindow(QMainWindow):
             if report_recovery:
                 QMessageBox.warning(self, tr("视频库已从备份恢复"), message)
         self.refresh_views()
-        if report_recovery and os.environ.get("QT_QPA_PLATFORM") != "offscreen":
+        if os.environ.get("QT_QPA_PLATFORM") != "offscreen":
             self._offer_refresh_modified_variants()
 
     def on_activated(self) -> None:
