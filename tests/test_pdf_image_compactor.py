@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -114,6 +115,10 @@ def make_bilevel_scan(path: Path) -> None:
 
 
 class PdfImageCompactorTest(unittest.TestCase):
+    @unittest.skipUnless(
+        all(shutil.which(binary) for binary in ("ffmpeg", "pdfimages", "pdftocairo")),
+        "requires FFmpeg and Poppler",
+    )
     def test_bilevel_scan_uses_lossless_ccitt_group4(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -133,6 +138,10 @@ class PdfImageCompactorTest(unittest.TestCase):
                 report["presentation"]["page_analysis"][0]["kind"], "scanned"
             )
 
+    @unittest.skipUnless(
+        all(shutil.which(binary) for binary in ("ffmpeg", "pdfimages", "pdftocairo")),
+        "requires FFmpeg and Poppler",
+    )
     def test_compresses_scan_and_preserves_text_forms_links_and_attachments(
         self,
     ) -> None:
