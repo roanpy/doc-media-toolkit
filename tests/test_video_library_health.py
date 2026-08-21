@@ -230,8 +230,10 @@ class VideoLibraryHealthTest(unittest.TestCase):
             fast = audit_video_project(project)
             full = audit_video_project(project, verify_hashes=True)
 
-            self.assertFalse(fast["ok"])
-            self.assertEqual(fast["stats"]["modified_variants"], 1)
+            self.assertTrue(fast["ok"])
+            self.assertEqual(fast["stats"]["modified_variants"], 0)
+            self.assertEqual(fast["stats"]["metadata_drift_variants"], 1)
+            self.assertEqual(fast["issue_counts"]["variant_metadata_drift"], 1)
             self.assertTrue(full["ok"])
             self.assertEqual(full["stats"]["modified_variants"], 0)
             self.assertEqual(full["stats"]["metadata_drift_variants"], 1)

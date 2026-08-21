@@ -2205,7 +2205,9 @@ class VideoProjectTest(unittest.TestCase):
             path = project.variant_path(variant)
             path.touch()
 
-            self.assertEqual(project.status(variant), "modified")
+            self.assertEqual(project.status(variant), "metadata_drift")
+            with self.assertRaisesRegex(ValueError, "只能隔离文件异常"):
+                project.quarantine_abnormal_variant(variant["id"])
             self.assertEqual(project.relink_missing(), [])
             self.assertEqual(project.status(variant), "available")
             self.assertEqual(
@@ -2223,7 +2225,7 @@ class VideoProjectTest(unittest.TestCase):
             variant = project.families()[0]["variants"][0]
             project.variant_path(variant).touch()
 
-            self.assertEqual(project.status(variant), "modified")
+            self.assertEqual(project.status(variant), "metadata_drift")
             result = project.refresh_modified_variants()
 
             self.assertEqual(result, {"refreshed": 1, "stale": 0})
@@ -2247,7 +2249,7 @@ class VideoProjectTest(unittest.TestCase):
             self.assertEqual(project.status(variant), "modified")
             result = project.refresh_modified_variants()
 
-            self.assertEqual(result, {"refreshed": 0, "stale": 1})
+            self.assertEqual(result, {"refreshed": 0, "stale": 0})
             self.assertEqual(
                 VideoProject.open(project.root).status(variant), "modified"
             )
