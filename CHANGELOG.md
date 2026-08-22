@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-08-22
+
 ### Fixed
 
 - Raise the setuptools build-backend floor to the version required by the
@@ -14,6 +16,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   incidental active Python environment.
 - Reject sensitive filenames, symbolic links, hard links, and extensionless
   text leaks in the public-repository safety check.
+- Preserve PPTX media playback XML and relationship identities during video
+  compression, watermark replacement, and high-quality backfill.
+- Treat cross-machine timestamp drift as a hash-review state instead of file
+  corruption, refresh verified timestamps in one batch, and recognize copied
+  libraries selected through a single wrapper directory.
+- Complete English coverage for video/image libraries and isolate GUI language
+  tests from host locale.
+- Stabilize the supported Python 3.10–3.13 and macOS/Windows CI matrix with
+  explicit host-runtime boundaries and measured responsive-layout assertions.
+
+### Changed
+
+- Show external-video import directly in the video-library action row and make
+  target-size GPU wording explicit.
+- Shorten the compression workspace subtitle so it remains readable at the
+  supported minimum window width.
+- Restrict CI workflow permissions to read-only repository contents.
 
 ## [0.2.3] - 2026-08-12
 

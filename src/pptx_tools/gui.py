@@ -108,7 +108,7 @@ STRINGS = {
         "video_tab": "动态压缩",
         "video_eyebrow": "DOC MEDIA TOOLKIT",
         "video_title": "文档及媒体动态压缩",
-        "video_subtitle": "压缩 PPTX 内嵌媒体，也支持独立图片、视频与 DOCX/PDF/XLSX 压缩",
+        "video_subtitle": "PPTX 媒体压缩，也支持图片、视频、DOCX、PDF 与 XLSX",
         "manager_tab": "视频库",
         "manager_eyebrow": "DOC MEDIA TOOLKIT",
         "manager_title": "PPTX 视频资产库",
@@ -150,7 +150,7 @@ STRINGS = {
         "video_tab": "Compression",
         "video_eyebrow": "DOC MEDIA TOOLKIT",
         "video_title": "Document & Media Dynamic Compression",
-        "video_subtitle": "Compress PPTX embedded media plus standalone images, videos, and DOCX/PDF/XLSX files",
+        "video_subtitle": "PPTX media compression with supporting document, image, and video inputs",
         "manager_tab": "Video Library",
         "manager_eyebrow": "DOC MEDIA TOOLKIT",
         "manager_title": "PPTX Video Library",
@@ -232,7 +232,7 @@ HELP_SECTIONS = {
               <li>旧格式视频会转为 H.264/AAC MP4，并自动重写 PPTX 内部引用。</li>
               <li>图片保持原格式：JPEG/WebP 使用质量参数，PNG 只做无损优化；不支持或压缩后变大的图片会自动保留原图。</li>
               <li>填写目标体积时优先压缩视频，仍不够时再降低图片质量；低体积图片档才允许最多缩到 80% 像素尺寸。</li>
-              <li>目标体积安全模式默认使用 CPU 两遍编码；只有手动开启“目标容量 GPU”才尝试 GPU。</li>
+              <li>目标体积安全模式默认使用 CPU 两遍编码；只有手动开启“目标容量用 GPU”才尝试 GPU。</li>
               <li>“阈值”是 SSIM 画质门槛，数值越高越严格；鼠标悬停可查看推荐区间。</li>
               <li>如果视频已经足够小，会直接保留原文件，避免反向变大。</li>
               <li>过程视频默认只放在临时目录；成功或手动停止会清理，普通处理错误时才会在源文件旁保留诊断目录。</li>
@@ -367,7 +367,7 @@ HELP_SECTIONS = {
               <li>Legacy formats are converted to H.264/AAC MP4 and internal PPTX references are updated.</li>
               <li>Images keep their original format: JPEG/WebP use encoder quality, PNG is optimized losslessly, and unsupported or larger results are copied unchanged.</li>
               <li>Target-size mode compresses videos first, then lowers image quality only if needed; Image Low may downsample to 80% pixel dimensions.</li>
-              <li>Safe target-size mode uses CPU two-pass encoding unless Target GPU is explicitly enabled.</li>
+              <li>Safe target-size mode uses CPU two-pass encoding unless “GPU for target size” is explicitly enabled.</li>
               <li>The Limit field is the SSIM quality threshold; hover it to see the suggested ranges.</li>
               <li>Process videos stay in a temp folder by default; success and manual stops clean them, while ordinary failures preserve a diagnostic folder beside the source.</li>
             </ul>

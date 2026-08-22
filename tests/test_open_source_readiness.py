@@ -55,6 +55,7 @@ class OpenSourceReadinessTest(unittest.TestCase):
             "docs/DEPENDENCIES.md",
             "docs/INSTALL.md",
             "docs/INSTALL.zh-CN.md",
+            "docs/releases/v0.2.4.md",
             "docs/releases/v0.2.3.md",
             "docs/releases/v0.2.2.md",
             "docs/releases/v0.2.1.md",
@@ -146,7 +147,7 @@ class OpenSourceReadinessTest(unittest.TestCase):
                         self.assertEqual(detector(), "en")
 
     def test_public_readmes_show_current_version(self) -> None:
-        self.assertEqual(__version__, "0.2.3")
+        self.assertEqual(__version__, "0.2.4")
         for name in ("README.md", "README.zh-CN.md"):
             self.assertIn(__version__, (ROOT / name).read_text(encoding="utf-8"))
 

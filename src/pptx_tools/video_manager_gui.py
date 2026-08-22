@@ -1855,7 +1855,7 @@ class MainWindow(QMainWindow):
             tr("提取所选 PPTX 的内嵌视频并建立形状关联；不修改 PPTX。")
         )
         self.archive_button.clicked.connect(self.archive_pptx_videos)
-        self.external_import_button = QPushButton(tr("导入外部视频并匹配"))
+        self.external_import_button = QPushButton(tr("导入视频"))
         self.external_import_button.setToolTip(
             tr("按哈希、时长、画面和音频指纹匹配；无匹配时新建视频，歧义时跳过。")
         )
@@ -2136,6 +2136,7 @@ class MainWindow(QMainWindow):
 
         self.more_actions_menu.aboutToShow.connect(self._sync_more_actions)
         self.more_actions_button.setMenu(self.more_actions_menu)
+        version_row.addWidget(self.external_import_button)
         version_row.addWidget(self.review_button)
         version_row.addWidget(self.import_button)
         version_row.addWidget(self.activate_button)

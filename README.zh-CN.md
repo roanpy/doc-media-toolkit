@@ -7,7 +7,7 @@
 
   [![源码状态：稳定](https://img.shields.io/badge/source-stable-brightgreen.svg)](#项目状态)
   [![二进制包：门禁中](https://img.shields.io/badge/binaries-signing%20%26%20license%20gated-orange.svg)](docs/INSTALL.zh-CN.md)
-  [![Version 0.2.3](https://img.shields.io/badge/version-0.2.3-2563eb.svg)](src/pptx_tools/__init__.py)
+  [![Version 0.2.4](https://img.shields.io/badge/version-0.2.4-2563eb.svg)](src/pptx_tools/__init__.py)
   [![Python 3.10–3.13](https://img.shields.io/badge/Python-3.10--3.13-3776AB.svg?logo=python&logoColor=white)](pyproject.toml)
   [![macOS | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey.svg)](#快速开始)
   [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -118,7 +118,7 @@ pptx-tools images --help
 
 ## 项目状态
 
-当前源码版本标识为**稳定版 0.2.3**。PPTX 压缩、水印、视频资产库及主要文档兼容能力已经过确认；图片资产管理是附加能力，尚未完成与核心功能同等级的深度实测。主窗口、水印、压缩和帮助中心支持简体中文与英文；视频库和图片库目前仍以中文为主。支持双语的工作区首次启动会跟随系统界面语言，也可在启动前设置 `PPTX_TOOLS_LANG=zh` 或 `PPTX_TOOLS_LANG=en` 强制切换。
+当前源码版本标识为**稳定版 0.2.4**。PPTX 压缩、水印、视频资产库及主要文档兼容能力已经过确认；图片资产管理是附加能力，尚未完成与核心功能同等级的深度实测。主窗口、四个工作区、设置、对话框和帮助中心均支持简体中文与英文，并在首次启动时跟随系统界面语言；也可在启动前设置 `PPTX_TOOLS_LANG=zh` 或 `PPTX_TOOLS_LANG=en` 强制切换。
 
 公开仓库和 Python 分发名均为 `doc-media-toolkit`；Python 导入包仍为 `pptx_tools`，CLI 继续保留 `pptx-tools` / `pptx-tools-gui`，因此已有脚本无需修改。分发名调整用于避开 PyPI 上已有的同名无关项目。0.2.0 的 DMG/EXE 候选在产物审计后已撤回，禁止重新公开；替换安装包必须使用 0.2.2 或更高版本。剩余阻塞包括 Developer ID/公证或 Authenticode 签名、目标平台恶意软件扫描证据、产物级 SBOM/原生库清单和 Windows Qt 分发路径。仓库已提供失败关闭的证据工具，并保留固定来源的 FFmpeg 对应源码包；工具不会把未扫描的本地候选包变成正式公开包。详见[候选产物审计](docs/releases/v0.2.0-candidate-audit.md)。
 
@@ -126,7 +126,7 @@ pptx-tools images --help
 
 ## 维护路线与参与
 
-近期优先级是：补齐视频库与图片库的中英文界面；完成 macOS/Windows 包剩余的所有者证书和产物证据门禁；用匿名测试样例继续校准目标容量与画质保护；在不改变版式和格式的前提下稳定 DOCX/PDF/XLSX 支持。
+近期优先级是：持续维护双语回归覆盖；完成 macOS/Windows 包剩余的所有者证书和产物证据门禁；用匿名测试样例继续校准目标容量与画质保护；在不改变版式和格式的前提下稳定 DOCX/PDF/XLSX 支持。
 
 欢迎提交可复现的[错误报告](https://github.com/roanpy/doc-media-toolkit/issues/new?template=bug_report.yml)或聚焦的[功能建议](https://github.com/roanpy/doc-media-toolkit/issues/new?template=feature_request.yml)。请先删除文档、截图和日志中的机密内容、个人信息及本机路径；安全问题请按[安全政策](SECURITY.md)私下报告。
 
@@ -138,7 +138,7 @@ pptx-tools images --help
 - [智能目标容量压缩规格](docs/SMART_TARGET_COMPRESSION.md)
 - [质量与发布门禁](docs/QUALITY_GATES.md)
 - [发布与打包说明](docs/RELEASE.md)
-- [0.2.3 发布说明](docs/releases/v0.2.3.md) · [0.2.2 发布说明](docs/releases/v0.2.2.md) · [已撤回的 0.2.0 候选审计](docs/releases/v0.2.0-candidate-audit.md)
+- [0.2.4 发布说明](docs/releases/v0.2.4.md) · [0.2.3 发布说明](docs/releases/v0.2.3.md) · [已撤回的 0.2.0 候选审计](docs/releases/v0.2.0-candidate-audit.md)
 - [参与贡献](CONTRIBUTING.md) · [行为准则](CODE_OF_CONDUCT.md) · [第三方许可](THIRD_PARTY_NOTICES.md)
 
 ## 开发与验证
