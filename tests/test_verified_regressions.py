@@ -983,6 +983,11 @@ class DesktopLifecycleTest(unittest.TestCase):
         self.assertFalse(window.help_button.icon().isNull())
         self.assertIn("font-size: 18px", window.styleSheet())
         self.assertNotIn("border-bottom", window.styleSheet())
+        window.tabs.setCurrentIndex(1)
+        self.assertEqual(
+            window.header_subtitle.text(),
+            "PPTX media compression with supporting document, image, and video inputs",
+        )
 
         help_dialog = HelpDialog("zh", 0, window)
         self.assertEqual(help_dialog.minimumWidth(), 760)
@@ -1417,6 +1422,7 @@ class DesktopLifecycleTest(unittest.TestCase):
         )
         self.assertEqual(window.video_threshold_spinbox.width(), 80)
         self.assertEqual(window.image_threshold_spinbox.width(), 80)
+        self.assertEqual(window.target_gpu_checkbox.text(), "目标容量用 GPU")
         window.append_log("[INFO] 日志浮层验证")
         window.resize(960, 652)
         window.show()
@@ -1704,12 +1710,14 @@ class DesktopLifecycleTest(unittest.TestCase):
                 window.choose_input_button.objectName(), "primaryAction"
             )
             self.assertIn("可拖入或多选 PPTX", window.input_summary.text())
-            self.assertEqual(window.external_import_button.text(), "导入外部视频并匹配")
+            self.assertEqual(window.external_import_button.text(), "导入视频")
             self.assertEqual(window.upgrade_button.text(), "高清回填 PPTX（另存）")
             self.assertEqual(window.health_button.text(), "库体检")
             self.assertIn("不会修改视频库", window.health_button.toolTip())
             self.assertEqual(window.preview_button.text(), "播放")
-            self.assertIsNone(window.external_import_button.parentWidget())
+            self.assertEqual(
+                window.external_import_button.parentWidget(), window.library_action_row
+            )
             self.assertEqual(
                 window.import_button.parentWidget(), window.library_action_row
             )
@@ -1725,6 +1733,7 @@ class DesktopLifecycleTest(unittest.TestCase):
                     for index in range(window.library_action_row.layout().count())
                 ],
                 [
+                    "导入视频",
                     "核实版本",
                     "添加版本",
                     "设为高清源",

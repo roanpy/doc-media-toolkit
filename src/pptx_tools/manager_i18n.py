@@ -291,6 +291,7 @@ TRANSLATIONS.update(
         "导入图片或文档": "Import Images or Documents",
         "导入外部视频": "Import External Videos",
         "导入外部视频并匹配": "Import external videos and match",
+        "导入视频": "Import Videos",
         "导入视频哈希目录": "Import Video Hash Catalog",
         "导出": "Export",
         "导出关联记录": "Export Link Records",
