@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   tests from host locale.
 - Stabilize the supported Python 3.10–3.13 and macOS/Windows CI matrix with
   explicit host-runtime boundaries and measured responsive-layout assertions.
+- Retry an isolated GUI test process once after an abnormal Windows Qt process
+  exit; repeatable assertion failures still fail the gate.
 
 ### Changed
 

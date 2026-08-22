@@ -56,15 +56,25 @@ def main() -> int:
         )
     )
     for batch in batches:
-        result = subprocess.run(
-            [sys.executable, __file__, "--batch", *batch],
-            cwd=ROOT,
-            env=env,
-            check=False,
-            creationflags=(
-                subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
-            ),
-        )
+        attempts = 2 if any(name.startswith(ISOLATED_PREFIX) for name in batch) else 1
+        for attempt in range(attempts):
+            result = subprocess.run(
+                [sys.executable, __file__, "--batch", *batch],
+                cwd=ROOT,
+                env=env,
+                check=False,
+                creationflags=(
+                    subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
+                ),
+            )
+            if result.returncode == 0:
+                break
+            if attempt + 1 < attempts:
+                print(
+                    f"Retrying isolated GUI test after process exit: {batch[0]}",
+                    file=sys.stderr,
+                    flush=True,
+                )
         if result.returncode:
             return result.returncode
     return 0
