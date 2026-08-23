@@ -1,0 +1,106 @@
+name: Build Windows one-file test artifact
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025-vs2026
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install Poppler
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '26.02.0-0'
+          $assetName = "Release-$version.zip"
+          $expectedSha256 = '993e4a94376ed712fafc7058d724ea0b943d118bbd2305cd9ed55174eb85cda5'
+          $zipPath = Join-Path $env:RUNNER_TEMP $assetName
+          $extractPath = Join-Path $env:RUNNER_TEMP 'poppler-windows'
+          Invoke-WebRequest -Uri "https://github.com/oschwartz10612/poppler-windows/releases/download/v$version/$assetName" -OutFile $zipPath
+          if ((Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expectedSha256) { throw 'Poppler archive checksum mismatch.' }
+          Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+          $pdfimages = Get-ChildItem $extractPath -Recurse -Filter pdfimages.exe | Select-Object -First 1
+          if (-not $pdfimages) { throw 'Poppler pdfimages.exe was not found.' }
+          $pdfimages.Directory.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Set up MSYS2 for FFmpeg
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            base-devel
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-nasm
+            mingw-w64-x86_64-pkgconf
+          path-type: inherit
+
+      - name: Build pinned FFmpeg runtime
+        shell: msys2 {0}
+        run: scripts/build_ffmpeg_runtime.sh "release-assets/ffmpeg-runtime"
+
+      - name: Set runtime paths
+        shell: pwsh
+        run: |
+          $runtime = (Resolve-Path "release-assets/ffmpeg-runtime").Path
+          "PPTX_TOOLS_FFMPEG=$runtime\bin\ffmpeg.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PPTX_TOOLS_FFPROBE=$runtime\bin\ffprobe.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PPTX_TOOLS_FFMPEG_LICENSE_DIR=$runtime\licenses" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Install build dependencies
+        shell: pwsh
+        run: |
+          python -m pip install uv==0.12.3
+          uv export --locked --all-extras --no-emit-project --format requirements.txt --output-file requirements.locked.txt
+          python -m pip install --require-hashes -r requirements.locked.txt
+          python -m pip install --no-deps --no-build-isolation -e .
+
+      - name: Check public safety and compile modules
+        shell: pwsh
+        run: |
+          python scripts/check_public_safety.py
+          python -m py_compile pptx_tools_gui.py scripts/build_standalone.py scripts/check_public_safety.py src/pptx_tools/gui.py
+
+      - name: Build Windows one-file executable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release-assets | Out-Null
+          python scripts/build_standalone.py --windows-onefile --clean --bundle-ffmpeg --require-ffmpeg-bundle --name "Doc Media Toolkit"
+          $appPath = "dist/Doc Media Toolkit.exe"
+          if (-not (Test-Path $appPath)) { throw 'Windows one-file executable is missing.' }
+          Copy-Item $appPath "release-assets/Doc-Media-Toolkit-windows-x64-onefile.exe"
+
+      - name: Smoke test executable
+        shell: pwsh
+        run: |
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          $appPath = "release-assets/Doc-Media-Toolkit-windows-x64-onefile.exe"
+          $process = Start-Process -FilePath $appPath -PassThru
+          Start-Sleep -Seconds 15
+          if ($process.HasExited) { throw "GUI smoke test exited early with code $($process.ExitCode)." }
+          Stop-Process -Id $process.Id -Force
+
+      - name: Write checksum and upload artifact
+        shell: pwsh
+        run: |
+          $artifact = Resolve-Path "release-assets/Doc-Media-Toolkit-windows-x64-onefile.exe"
+          $hash = (Get-FileHash $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  Doc-Media-Toolkit-windows-x64-onefile.exe" | Set-Content "release-assets/SHA256SUMS-windows-x64-onefile.txt"
+
+      - name: Upload one-file artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: doc-media-toolkit-windows-x64-onefile
+          path: release-assets/*onefile*
+          if-no-files-found: error
