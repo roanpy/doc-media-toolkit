@@ -198,7 +198,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force release-assets | Out-Null
-          python scripts/build_standalone.py --windows-onefile --clean --bundle-ffmpeg --require-ffmpeg-bundle --name "Doc Media Toolkit"
+          python scripts/build_standalone.py --gui --onefile --target-platform windows --clean --bundle-ffmpeg --require-ffmpeg-bundle --name "Doc Media Toolkit"
           $appPath = "dist/Doc Media Toolkit.exe"
           if (-not (Test-Path $appPath)) { throw 'Windows one-file executable is missing.' }
           $env:QT_QPA_PLATFORM = 'offscreen'
