@@ -12,6 +12,14 @@ on:
           - windows
           - macos
           - all
+      package_type:
+        description: "Windows package layout for internal candidate builds."
+        required: true
+        default: "portable"
+        type: choice
+        options:
+          - portable
+          - onefile
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -165,7 +173,7 @@ jobs:
             --output "release-assets/RELEASE-AUDIT-${{ matrix.platform }}.md"
 
       - name: Build Windows GUI portable directory
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && inputs.package_type != 'onefile'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force release-assets | Out-Null
@@ -184,6 +192,23 @@ jobs:
             --dist-dir "dist/Doc Media Toolkit" `
             --with-sbom "release-assets/SBOM-${{ matrix.platform }}.cdx.json" `
             --output "release-assets/RELEASE-AUDIT-${{ matrix.platform }}.md"
+
+      - name: Build Windows GUI one-file executable
+        if: runner.os == 'Windows' && inputs.package_type == 'onefile'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release-assets | Out-Null
+          python scripts/build_standalone.py --windows-onefile --clean --bundle-ffmpeg --require-ffmpeg-bundle --name "Doc Media Toolkit"
+          $appPath = "dist/Doc Media Toolkit.exe"
+          if (-not (Test-Path $appPath)) { throw 'Windows one-file executable is missing.' }
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          $process = Start-Process -FilePath $appPath -PassThru
+          Start-Sleep -Seconds 15
+          if ($process.HasExited) { throw "GUI smoke test exited early with code $($process.ExitCode)." }
+          Stop-Process -Id $process.Id -Force
+          Copy-Item $appPath "release-assets/Doc-Media-Toolkit-${{ matrix.platform }}-onefile.exe"
+          Copy-Item "release-assets/ffmpeg-runtime/FFMPEG-BUILD.txt" "release-assets/FFMPEG-${{ matrix.platform }}.txt"
+          Move-Item "release-assets/ffmpeg-runtime/Doc-Media-Toolkit-FFmpeg-8.1.2-corresponding-source.tar.gz" "release-assets/Doc-Media-Toolkit-FFmpeg-8.1.2-${{ matrix.platform }}-corresponding-source.tar.gz"
 
       - name: Remove macOS build-only FFmpeg staging
         if: runner.os == 'macOS'
