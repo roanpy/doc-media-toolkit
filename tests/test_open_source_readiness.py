@@ -50,6 +50,7 @@ class OpenSourceReadinessTest(unittest.TestCase):
             "CODE_OF_CONDUCT.md",
             "SECURITY.md",
             "THIRD_PARTY_NOTICES.md",
+            ".gitattributes",
             "MANIFEST.in",
             "docs/LICENSING.md",
             "docs/DEPENDENCIES.md",
@@ -71,6 +72,10 @@ class OpenSourceReadinessTest(unittest.TestCase):
             ".github/ISSUE_TEMPLATE/bug_report.yml",
         )
         self.assertFalse([path for path in required if not (ROOT / path).is_file()])
+
+        attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+        self.assertIn("* text=auto", attributes)
+        self.assertIn("*.sh text eol=lf", attributes)
 
         metadata = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
         self.assertIn('license = "MIT"', metadata)
