@@ -3004,6 +3004,7 @@ class CenteredMessageHelperTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+        configure_ui_font(cls.app)
 
     def test_helper_centers_on_parent_window_frame(self) -> None:
         parent = QWidget()
