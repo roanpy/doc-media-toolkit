@@ -229,10 +229,12 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Get-ChildItem release-assets -File | Sort-Object Name | ForEach-Object {
+          $lines = Get-ChildItem release-assets -File | Sort-Object Name | ForEach-Object {
             $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $($_.Name)"
-          } | Set-Content "release-assets/SHA256SUMS-${{ matrix.platform }}.txt"
+          }
+          $content = ($lines -join "`n") + "`n"
+          [IO.File]::WriteAllText("release-assets/SHA256SUMS-${{ matrix.platform }}.txt", $content, [Text.UTF8Encoding]::new($false))
 
       - name: Upload artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
