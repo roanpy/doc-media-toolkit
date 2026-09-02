@@ -279,6 +279,8 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertIn("- macos", workflow)
         self.assertIn("scripts/build_ffmpeg_runtime.sh", workflow)
         self.assertNotIn("GyanD/codexffmpeg", workflow)
+        self.assertIn('$lines -join "`n"', workflow)
+        self.assertIn("[IO.File]::WriteAllText", workflow)
 
         ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         self.assertIn("uv export --locked --extra dev", ci)
