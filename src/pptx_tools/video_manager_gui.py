@@ -4064,6 +4064,7 @@ class MainWindow(QMainWindow):
                         else tr("正常")
                     ),
                     "code_similarity": code_similarity,
+                    "category": str(item_family.get("category") or ""),
                     "preview_path": preview,
                 }
             )
@@ -4127,22 +4128,33 @@ class MainWindow(QMainWindow):
         dialog = AISuggestionDialog(
             self,
             result,
-            {"suggested_name": family["name"]},
-            {"suggested_name": tr("名称")},
+            {
+                "suggested_name": family["name"],
+                "category": family.get("category", ""),
+            },
+            {"suggested_name": tr("名称"), "category": tr("分类")},
             self.ai_item_names,
         )
         applied: list[str] = []
         if dialog.exec() == QDialog.DialogCode.Accepted:
             values = dialog.selected_values()
-            if values.get("suggested_name"):
-                try:
+            try:
+                if values.get("suggested_name"):
                     self.project.rename_family_and_source(
                         self.ai_target_family_id, values["suggested_name"]
                     )
                     applied.append(tr("名称"))
+                if "category" in values and values["category"] != family.get(
+                    "category", ""
+                ):
+                    self.project.move_family(
+                        self.ai_target_family_id, values["category"]
+                    )
+                    applied.append(tr("分类"))
+                if applied:
                     self.refresh_views()
-                except Exception as exc:
-                    self.show_error(str(exc))
+            except Exception as exc:
+                self.show_error(str(exc))
         merged = self._review_ai_video_merge_groups(result.get("merge_groups") or [])
         if merged:
             applied.append(f"{tr('归并 ')}{merged}{tr(' 个视频族')}")

@@ -113,6 +113,7 @@ pptx-tools images --help
 - Library removal, merging, and cleanup move managed copies to recoverable quarantine first.
 - Filename, folder, duration, or resolution alone never proves that two media files are identical.
 - AI organization suggestions are optional. API keys stay in process memory; complete documents, complete videos, and local paths are not sent by default.
+- Image and video imports share portable category validation and conservative name cleanup. Exact hashes, image pixels, and video fingerprints remain the identity evidence; AI only reviews code-selected candidates and proposes names, categories, tags, or merges for confirmation.
 - A public DMG/EXE is not an “MIT-only” artifact. Qt, FFmpeg, PDFium, Python, and platform-native libraries still require artifact-level license review and signing.
 
 See the [dependency rationale](docs/DEPENDENCIES.md), [licensing guide](docs/LICENSING.md), and [security policy](SECURITY.md).

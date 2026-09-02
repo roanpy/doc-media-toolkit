@@ -21,6 +21,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
+from pptx_tools.media_rules import normalize_import_name, normalize_media_category
 from pptx_tools.project_lock import project_write_lock
 
 
@@ -420,6 +421,10 @@ class ImageProject:
     ) -> dict[str, Any]:
         if min_width < 0 or min_height < 0:
             raise ValueError("图片最小宽度和高度不能小于 0。")
+        category_path = normalize_media_category(category)
+        normalized_category = (
+            "" if category_path == Path() else category_path.as_posix()
+        )
         added = 0
         reused = 0
         failed: list[dict[str, str]] = []
@@ -482,8 +487,10 @@ class ImageProject:
                             continue
                         added += int(was_added)
                         reused += int(not was_added)
-                        if category and (was_added or not asset.get("category")):
-                            asset["category"] = category.strip()
+                        if normalized_category and (
+                            was_added or not asset.get("category")
+                        ):
+                            asset["category"] = normalized_category
                             asset["updated_at"] = utc_now()
                         imported.append(asset["id"])
                     if cancelled:
@@ -589,7 +596,7 @@ class ImageProject:
             "id": str(uuid.uuid4()),
             "sha256": digest,
             "path": relative.as_posix(),
-            "name": Path(source_name).stem or digest[:12],
+            "name": normalize_import_name(Path(source_name).stem, fallback=digest[:12]),
             "category": "",
             "tags": [],
             "summary": "",
@@ -730,7 +737,10 @@ class ImageProject:
                     raise ValueError("图片名称不能为空。")
                 asset["name"] = cleaned
             if category is not None:
-                asset["category"] = category.strip()
+                category_path = normalize_media_category(category)
+                asset["category"] = (
+                    "" if category_path == Path() else category_path.as_posix()
+                )
             if tags is not None:
                 asset["tags"] = list(
                     dict.fromkeys(tag.strip() for tag in tags if tag.strip())

@@ -107,6 +107,21 @@ class ImageManagerTests(unittest.TestCase):
 
         self.assertEqual(project.assets()[0]["category"], "示例项目/2026")
 
+    def test_import_normalizes_name_and_rejects_unsafe_category(self) -> None:
+        project = ImageProject.create(self.root / "library")
+        source = self.root / "1662562042-示例设备_fault.png"
+        source.write_bytes(image_bytes((20, 30, 40)))
+
+        project.import_paths([source], category="示例分类/异常样本")
+
+        self.assertEqual(
+            project.assets()[0]["name"],
+            "示例设备_异常_1662562042",
+        )
+        self.assertEqual(project.assets()[0]["category"], "示例分类/异常样本")
+        with self.assertRaises(ValueError):
+            project.import_paths([source], category="../outside")
+
     def test_office_import_only_keeps_referenced_images(self) -> None:
         project = ImageProject.create(self.root / "library")
         pptx = self.root / "sample.pptx"

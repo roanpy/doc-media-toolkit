@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QAbstractSpinBox,
     QCheckBox,
     QComboBox,
+    QDialog,
     QFileDialog,
     QLabel,
     QLineEdit,
@@ -607,6 +608,44 @@ class DesktopLifecycleTest(unittest.TestCase):
                 self.settings.remove(key)
             else:
                 self.settings.setValue(key, previous)
+
+    def test_video_ai_applies_reviewed_name_and_category_only(self) -> None:
+        family = {"id": "family", "name": "旧名称", "category": "旧分类"}
+        project = SimpleNamespace(
+            family=lambda _family_id: family,
+            rename_family_and_source=MagicMock(),
+            move_family=MagicMock(),
+        )
+        window = VideoLibraryMainWindow()
+        window.project = project
+        window.ai_target_family_id = "family"
+        window.ai_item_names = {}
+        window.ai_ignore_result = False
+        window.ai_request_config = None
+        with (
+            patch("pptx_tools.ai_review_dialog.AISuggestionDialog") as dialog,
+            patch.object(window, "refresh_views") as refresh,
+            patch.object(window, "append_log"),
+            patch.object(window, "_review_ai_video_merge_groups", return_value=0),
+        ):
+            dialog.return_value.exec.return_value = QDialog.DialogCode.Accepted
+            dialog.return_value.selected_values.return_value = {
+                "suggested_name": "新名称",
+                "category": "新分类/项目",
+            }
+
+            window._show_ai_suggestion(
+                {
+                    "suggested_name": "新名称",
+                    "category": "新分类/项目",
+                    "merge_groups": [],
+                }
+            )
+
+        project.rename_family_and_source.assert_called_once_with("family", "新名称")
+        project.move_family.assert_called_once_with("family", "新分类/项目")
+        refresh.assert_called_once_with()
+        window.close()
 
     def test_restored_library_offers_batch_status_refresh(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
