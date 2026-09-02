@@ -35,7 +35,7 @@ dependencies = [
   "pikepdf>=10.0",
   "PySide6>=6.9",
   "python-pptx>=1.0.2",
-  "pypdf>=5.0",
+  "pypdf>=6.16.1",
   "pypdfium2>=4.0",
   "reportlab>=4.0",
   "comtypes>=1.4.1; sys_platform == 'win32'",
