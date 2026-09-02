@@ -286,6 +286,7 @@ HELP_SECTIONS = {
               <li>新建或打开图片库，导入图片或文档，也可直接拖入。</li>
               <li>先按 SHA-256 精确复用相同文件；不同编码的图片只生成代码指纹相似候选，不会自动合并。</li>
               <li>PPTX / DOCX 只提取关系文件实际引用的图片；PDF 只提取内嵌图像，不整页渲染、不做 OCR。</li>
+              <li>图片和视频使用相同的跨平台分类校验与保守名称清洗；原文件名和来源路径仍保留在清单中。</li>
               <li>名称、分类、标签和说明可以人工维护；配置视觉 AI 后可生成整理建议，但应用前仍需确认。</li>
             </ol>
             <h3>空间控制</h3>
@@ -408,6 +409,7 @@ HELP_SECTIONS = {
               <li>Create or open an image library, then select or drop images and documents.</li>
               <li>Exact SHA-256 matches reuse one stored file. Visual fingerprints only create review candidates and never merge automatically.</li>
               <li>Office packages import referenced media only. PDFs import embedded images without page rendering or OCR.</li>
+              <li>Image and video imports share portable category validation and conservative name cleanup; original names and source paths remain in the manifest.</li>
               <li>Names, categories, tags, and summaries remain editable. Optional vision AI produces reviewable suggestions only.</li>
             </ol>
             <h3>Storage control</h3>
@@ -484,7 +486,7 @@ HELP_EXTRA_SECTIONS = {
             <ul>
               <li>视频库：建议同源归并、主视频、名称和分类；视觉模式可参考三帧联系图。</li>
               <li>图片库：建议命名、分类、标签、说明和可能的合并组。</li>
-              <li>关闭图片输入后只发送名称、规格、大小和代码相似度，不发送预览图片。</li>
+              <li>关闭图片输入后只发送名称、分类、标签、说明、规格、大小和代码相似度，不发送预览图片。</li>
             </ul>
             <h3>隐私与安全</h3>
             <ul>
@@ -567,7 +569,7 @@ HELP_EXTRA_SECTIONS = {
             <ul>
               <li>Video: merge candidates, primary source, naming, and category suggestions.</li>
               <li>Image: naming, category, tags, summary, and possible merge groups.</li>
-              <li>With image input off, previews are not sent.</li>
+              <li>With image input off, only names, categories, tags, summaries, specifications, sizes, and code similarity are sent; previews are not sent.</li>
             </ul>
             <h3>Privacy</h3>
             <ul>

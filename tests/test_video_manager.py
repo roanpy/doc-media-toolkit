@@ -759,6 +759,34 @@ class VideoProjectTest(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 normalize_library_category(value)
 
+    def test_external_import_uses_shared_name_and_category_rules(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "1662562042-示例设备_fault.mp4"
+            source.write_bytes(b"video")
+            library = VideoProject.create(root / "library")
+            fingerprint = {
+                "duration_ms": 1000,
+                "aspect_ppm": 1_777_778,
+                "frames": ["0" * 16] * 5,
+                "luma": [120] * 5,
+                "has_audio": False,
+            }
+            with (
+                patch("pptx_tools.video_manager.probe_video", side_effect=no_probe),
+                patch(
+                    "pptx_tools.video_manager._video_fingerprint",
+                    return_value=fingerprint,
+                ),
+            ):
+                library.import_external_video(
+                    source, source_quality="original", category="示例分类/异常样本"
+                )
+
+            family = library.families()[0]
+            self.assertEqual(family["name"], "示例设备_异常_1662562042")
+            self.assertEqual(family["category"], "示例分类/异常样本")
+
     def test_exact_duplicates_are_archived_once_across_decks(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

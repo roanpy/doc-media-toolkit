@@ -283,6 +283,9 @@ class OpenAICompatibleClient:
                 "bitrate_kbps": int(item.get("bitrate_kbps") or 0),
                 "health": str(item.get("health") or "正常"),
                 "code_similarity": item.get("code_similarity"),
+                "category": str(item.get("category") or "")[:240],
+                "tags": [str(tag)[:80] for tag in (item.get("tags") or [])[:12]],
+                "summary": str(item.get("summary") or "")[:500],
             }
             for item in normalized
         ]

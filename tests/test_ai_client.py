@@ -120,6 +120,9 @@ class AIClientTests(unittest.TestCase):
                             "name": "one",
                             "width": 30,
                             "height": 20,
+                            "category": "示例分类/样本",
+                            "tags": ["异常"],
+                            "summary": "示例设备检测样本",
                             "preview_path": preview,
                         },
                         {"id": "b", "name": "two", "width": 60, "height": 40},
@@ -133,6 +136,9 @@ class AIClientTests(unittest.TestCase):
         sent = json.loads(request.call_args.args[0].data.decode("utf-8"))
         self.assertEqual(sent["model"], "vision-model")
         self.assertIn("image_url", json.dumps(sent))
+        prompt = json.dumps(sent, ensure_ascii=False)
+        self.assertIn("示例分类/样本", prompt)
+        self.assertIn("示例设备检测样本", prompt)
 
     def test_invalid_response_fails_without_exposing_api_key(self) -> None:
         with patch(

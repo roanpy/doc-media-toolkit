@@ -26,6 +26,11 @@ from PIL import Image
 from pptx_output_watermark.ffmpeg_runtime import ensure_binary, run_binary
 from pptx_output_watermark.process_utils import hidden_console_kwargs, run_process
 from pptx_output_watermark.pptx_video_support import VideoAsset, scan_embedded_videos
+from pptx_tools.media_rules import (
+    normalize_import_name,
+    normalize_media_category,
+    safe_media_name,
+)
 from pptx_tools.project_lock import project_write_lock
 from pptx_video_compactor import (
     VideoAsset as CompactVideoAsset,
@@ -104,8 +109,7 @@ def _copy_zip_member(archive: ZipFile, member: str, target: Path) -> str:
 
 
 def _safe_name(value: str, fallback: str = "video") -> str:
-    value = re.sub(r"[^\w.-]+", "_", value, flags=re.UNICODE).strip("._")
-    return value[:80] or fallback
+    return safe_media_name(value, fallback)
 
 
 def _normalized_video_name(value: str) -> str:
@@ -149,18 +153,7 @@ def _variant_filename(
 
 
 def normalize_library_category(value: str) -> Path:
-    raw = value.strip().replace("\\", "/")
-    if not raw:
-        return Path()
-    if raw.startswith("/") or re.match(r"^[A-Za-z]:", raw):
-        raise ValueError("Video library category must be a relative folder path")
-    raw = raw.rstrip("/")
-    if any(part in {"", ".", ".."} for part in raw.split("/")):
-        raise ValueError("Video library category must be a relative folder path")
-    parts = [_safe_name(part, "") for part in raw.split("/")]
-    if any(not part for part in parts):
-        raise ValueError("Video library category contains an invalid folder name")
-    return Path(*parts)
+    return normalize_media_category(value)
 
 
 def _unique_path(path: Path) -> Path:
@@ -1714,10 +1707,11 @@ class VideoProject:
                     staged = staging / f"asset-{index}{suffix}"
                     digest = _copy_zip_member(archive, asset.media_path, staged)
                     occurrence = asset.occurrences[0] if asset.occurrences else None
-                    display_name = _safe_name(
+                    display_name = normalize_import_name(
                         occurrence.shape_name
                         if occurrence
-                        else Path(asset.media_path).stem
+                        else Path(asset.media_path).stem,
+                        fallback="video",
                     )
                     family = self.family_by_known_hash(digest)
                     metadata: dict[str, Any] | None = None
@@ -3271,10 +3265,13 @@ class VideoProject:
         created = not matches
         if created:
             family_id = str(uuid.uuid4())
-            name = _safe_name(source.stem)
+            name = normalize_import_name(source.stem, fallback="video")
             family = {
                 "id": family_id,
                 "name": name,
+                "category": (
+                    "" if category_path == Path() else category_path.as_posix()
+                ),
                 "active_variant_id": "",
                 "source_variant_id": "",
                 "variants": [],
