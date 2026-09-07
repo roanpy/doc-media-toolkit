@@ -82,6 +82,7 @@ from pptx_tools.gui import (
     persistent_library_setting,
 )
 from pptx_tools.ai_client import AIConfig, OpenAICompatibleClient
+from pptx_tools.ai_review_dialog import AISuggestionDialog
 from pptx_tools.image_manager import ImageProject
 from pptx_tools.image_manager_gui import (
     ImportPreviewDialog,
@@ -646,6 +647,146 @@ class DesktopLifecycleTest(unittest.TestCase):
         project.move_family.assert_called_once_with("family", "新分类/项目")
         refresh.assert_called_once_with()
         window.close()
+
+    def test_rejecting_image_ai_review_does_not_open_merge_review(self) -> None:
+        asset = {
+            "id": "asset",
+            "name": "旧图片",
+            "category": "",
+            "tags": [],
+            "summary": "",
+        }
+        project = SimpleNamespace(asset=lambda _asset_id: asset)
+        window = ImageLibraryMainWindow()
+        window.project = project
+        window.ai_target_asset_id = "asset"
+        window.ai_item_names = {}
+        window.ai_ignore_result = False
+        window.ai_request_config = None
+        with (
+            patch("pptx_tools.ai_review_dialog.AISuggestionDialog") as dialog,
+            patch.object(window, "_review_ai_merge_groups") as review,
+            patch.object(window, "refresh_views"),
+        ):
+            dialog.return_value.exec.return_value = QDialog.DialogCode.Rejected
+            window._show_ai_suggestion(
+                {
+                    "suggested_name": "新图片",
+                    "merge_groups": [{"item_ids": ["asset"], "primary_id": "asset"}],
+                }
+            )
+
+        review.assert_not_called()
+        window.close()
+
+    def test_accepting_merge_only_image_review_skips_empty_metadata_update(
+        self,
+    ) -> None:
+        asset = {
+            "id": "asset",
+            "name": "旧图片",
+            "category": "",
+            "tags": [],
+            "summary": "",
+        }
+        update_metadata = MagicMock()
+        project = SimpleNamespace(
+            asset=lambda _asset_id: asset,
+            update_metadata=update_metadata,
+        )
+        window = ImageLibraryMainWindow()
+        window.project = project
+        window.ai_target_asset_id = "asset"
+        window.ai_item_names = {}
+        window.ai_ignore_result = False
+        window.ai_request_config = None
+        with (
+            patch("pptx_tools.ai_review_dialog.AISuggestionDialog") as dialog,
+            patch.object(window, "_review_ai_merge_groups", return_value=0),
+            patch.object(window, "refresh_views"),
+        ):
+            dialog.return_value.exec.return_value = QDialog.DialogCode.Accepted
+            dialog.return_value.selected_values.return_value = {}
+            window._show_ai_suggestion(
+                {
+                    "merge_groups": [{"item_ids": ["asset"], "primary_id": "asset"}],
+                }
+            )
+
+        update_metadata.assert_not_called()
+        window.close()
+
+    def test_rejecting_video_ai_review_does_not_open_merge_review(self) -> None:
+        family = {"id": "family", "name": "旧视频", "category": ""}
+        project = SimpleNamespace(family=lambda _family_id: family)
+        window = VideoLibraryMainWindow()
+        window.project = project
+        window.ai_target_family_id = "family"
+        window.ai_item_names = {}
+        window.ai_ignore_result = False
+        window.ai_request_config = None
+        with (
+            patch("pptx_tools.ai_review_dialog.AISuggestionDialog") as dialog,
+            patch.object(window, "_review_ai_video_merge_groups") as review,
+            patch.object(window, "append_log"),
+        ):
+            dialog.return_value.exec.return_value = QDialog.DialogCode.Rejected
+            window._show_ai_suggestion(
+                {
+                    "suggested_name": "新视频",
+                    "merge_groups": [
+                        {"item_ids": ["variant"], "primary_id": "variant"}
+                    ],
+                }
+            )
+
+        review.assert_not_called()
+        window.close()
+
+    def test_merge_only_ai_review_has_explicit_localized_review_action(self) -> None:
+        dialog = AISuggestionDialog(
+            None,
+            {
+                "merge_groups": [
+                    {
+                        "item_ids": ["one", "two"],
+                        "primary_id": "one",
+                        "confidence": 0.9,
+                        "reason": "same",
+                    }
+                ]
+            },
+            {},
+            {},
+            {"one": "One", "two": "Two"},
+        )
+        action = dialog.findChild(QPushButton, "primaryAction")
+        self.assertIsNotNone(action)
+        self.assertTrue(action.isEnabled())
+        self.assertEqual(action.text(), "核对与归并")
+        dialog.close()
+
+        set_language("en")
+        dialog = AISuggestionDialog(
+            None,
+            {
+                "merge_groups": [
+                    {
+                        "item_ids": ["one", "two"],
+                        "primary_id": "one",
+                        "confidence": 0.9,
+                        "reason": "same",
+                    }
+                ]
+            },
+            {},
+            {},
+            {"one": "One", "two": "Two"},
+        )
+        action = dialog.findChild(QPushButton, "primaryAction")
+        self.assertIsNotNone(action)
+        self.assertEqual(action.text(), "Review & Merge")
+        dialog.close()
 
     def test_restored_library_offers_batch_status_refresh(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

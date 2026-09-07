@@ -27,6 +27,7 @@ from pptx_output_watermark.ffmpeg_runtime import ensure_binary, run_binary
 from pptx_output_watermark.process_utils import hidden_console_kwargs, run_process
 from pptx_output_watermark.pptx_video_support import VideoAsset, scan_embedded_videos
 from pptx_tools.media_rules import (
+    fit_media_component,
     normalize_import_name,
     normalize_media_category,
     safe_media_name,
@@ -149,7 +150,8 @@ def _variant_filename(
     if duration > 0:
         details.append(f"{duration:.1f}s")
     spec = f"_[{'_'.join(details)}]" if details else ""
-    return f"{_safe_name(name)}{spec}_{digest[:8]}{suffix}"
+    metadata_suffix = f"{spec}_{digest[:8]}{suffix}"
+    return fit_media_component(_safe_name(name), metadata_suffix)
 
 
 def normalize_library_category(value: str) -> Path:
@@ -160,7 +162,15 @@ def _unique_path(path: Path) -> Path:
     if not path.exists():
         return path
     for index in range(2, 10_000):
-        candidate = path.with_name(f"{path.stem}_{index}{path.suffix}")
+        index_suffix = f"_{index}{path.suffix}"
+        metadata = re.match(r"^(.*)(_(?:\[[^\]]+\]_)?[0-9a-f]{8})$", path.stem)
+        if metadata:
+            candidate_name = fit_media_component(
+                metadata.group(1), f"{metadata.group(2)}{index_suffix}"
+            )
+        else:
+            candidate_name = fit_media_component(path.stem, index_suffix)
+        candidate = path.with_name(candidate_name)
         if not candidate.exists():
             return candidate
     raise RuntimeError(f"Unable to choose a unique path near {path}")

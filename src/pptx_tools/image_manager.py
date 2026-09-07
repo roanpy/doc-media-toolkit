@@ -564,6 +564,12 @@ class ImageProject:
         digest = sha256_bytes(data)
         existing = self.find_by_hash(digest) or self.find_by_pixels(metadata)
         if existing is not None:
+            stored = self.asset_path(existing)
+            if not stored.is_file() or sha256_file(stored) != existing["sha256"]:
+                raise ValueError(
+                    "库内图片缺失或已修改，请先检查图片库。 / "
+                    "Stored image is missing or modified; check the library before reuse."
+                )
             origins = existing.setdefault("origins", [])
             identity = (
                 origin.get("source_path", ""),
@@ -581,6 +587,11 @@ class ImageProject:
         target = self.root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         created_path = None
+        if target.exists() and (not target.is_file() or sha256_file(target) != digest):
+            raise ValueError(
+                "库内图片缺失或已修改，请先检查图片库。 / "
+                "Stored image is missing or modified; check the library before reuse."
+            )
         if not target.exists():
             fd, temp_name = tempfile.mkstemp(prefix=".image-", dir=target.parent)
             os.close(fd)
