@@ -83,6 +83,47 @@ class ImageManagerTests(unittest.TestCase):
         self.assertEqual(len(project.assets()), 1)
         self.assertEqual(len(project.assets()[0]["origins"]), 2)
 
+    def test_import_refuses_missing_or_modified_duplicate(self) -> None:
+        for suffix in (".png", ".bmp"):
+            for missing in (True, False):
+                with self.subTest(suffix=suffix, missing=missing):
+                    project = ImageProject.create(
+                        self.root / f"library-{suffix}-{missing}"
+                    )
+                    source = self.root / "source.png"
+                    source.write_bytes(image_bytes((20, 30, 40)))
+                    project.import_paths([source])
+                    duplicate = self.root / f"duplicate{suffix}"
+                    with Image.open(source) as image:
+                        image.save(duplicate)
+                    asset = project.assets()[0]
+                    stored = project.asset_path(asset)
+                    if missing:
+                        stored.unlink()
+                    else:
+                        stored.write_bytes(b"x" * stored.stat().st_size)
+                    before = json.dumps(project.data, sort_keys=True)
+                    result = project.import_paths([duplicate])
+                    self.assertEqual(result["reused"], 0)
+                    self.assertEqual(len(result["failed"]), 1)
+                    self.assertEqual(json.dumps(project.data, sort_keys=True), before)
+                    self.assertTrue(source.is_file())
+
+    def test_import_refuses_corrupt_unregistered_target(self) -> None:
+        project = ImageProject.create(self.root / "library")
+        source = self.root / "source.png"
+        source.write_bytes(image_bytes((20, 30, 40)))
+        project.import_paths([source])
+        stored = project.asset_path(project.assets()[0])
+        project.data["assets"] = []
+        project.save()
+        stored.write_bytes(b"corrupt")
+        result = project.import_paths([source])
+        self.assertEqual(result["added"], 0)
+        self.assertEqual(len(result["failed"]), 1)
+        self.assertEqual(stored.read_bytes(), b"corrupt")
+        self.assertEqual(project.assets(), [])
+
     def test_import_can_skip_images_below_configured_dimensions(self) -> None:
         project = ImageProject.create(self.root / "library")
         source = self.root / "small.png"

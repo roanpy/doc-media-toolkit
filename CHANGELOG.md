@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Verify stored image bytes before duplicate reuse or adopting an existing target;
+  missing or modified files are reported as import failures without changing them.
+- Normalize Windows reserved media names and bound long Unicode names while
+  retaining room for video metadata and hash suffixes.
+- Stop both image and video AI review flows when the suggestion dialog is
+  dismissed; allow explicit review of merge-only suggestions.
+
+### Changed
+
+- Keep original source names and hash-based identity when cleaning import names;
+  existing libraries are not renamed automatically.
+
 ## [0.2.4] - 2026-08-22
 
 ### Fixed

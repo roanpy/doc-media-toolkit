@@ -1449,29 +1449,35 @@ class MainWindow(QMainWindow):
             self.ai_item_names,
         )
         applied: list[str] = []
-        if dialog.exec() == QDialog.DialogCode.Accepted:
+        reviewed = dialog.exec() == QDialog.DialogCode.Accepted
+        if reviewed:
             values = dialog.selected_values()
-            try:
-                self.project.update_metadata(
-                    asset["id"],
-                    name=values.get("suggested_name"),
-                    category=values.get("category"),
-                    tags=values.get("tags"),
-                    summary=values.get("summary"),
-                )
-                applied = [
-                    label
-                    for key, label in {
-                        "suggested_name": tr("名称"),
-                        "category": tr("分类"),
-                        "tags": tr("标签"),
-                        "summary": tr("说明"),
-                    }.items()
-                    if key in values
-                ]
-            except Exception as exc:
-                self.show_error(str(exc))
-        merged = self._review_ai_merge_groups(result.get("merge_groups") or [])
+            if values:
+                try:
+                    self.project.update_metadata(
+                        asset["id"],
+                        name=values.get("suggested_name"),
+                        category=values.get("category"),
+                        tags=values.get("tags"),
+                        summary=values.get("summary"),
+                    )
+                    applied = [
+                        label
+                        for key, label in {
+                            "suggested_name": tr("名称"),
+                            "category": tr("分类"),
+                            "tags": tr("标签"),
+                            "summary": tr("说明"),
+                        }.items()
+                        if key in values
+                    ]
+                except Exception as exc:
+                    self.show_error(str(exc))
+        merged = (
+            self._review_ai_merge_groups(result.get("merge_groups") or [])
+            if reviewed
+            else 0
+        )
         if merged:
             applied.append(f"{tr('合并 ')}{merged}{tr(' 张重复图片')}")
         self.status_label.setText(

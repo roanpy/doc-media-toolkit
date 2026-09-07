@@ -4136,7 +4136,8 @@ class MainWindow(QMainWindow):
             self.ai_item_names,
         )
         applied: list[str] = []
-        if dialog.exec() == QDialog.DialogCode.Accepted:
+        reviewed = dialog.exec() == QDialog.DialogCode.Accepted
+        if reviewed:
             values = dialog.selected_values()
             try:
                 if values.get("suggested_name"):
@@ -4155,7 +4156,11 @@ class MainWindow(QMainWindow):
                     self.refresh_views()
             except Exception as exc:
                 self.show_error(str(exc))
-        merged = self._review_ai_video_merge_groups(result.get("merge_groups") or [])
+        merged = (
+            self._review_ai_video_merge_groups(result.get("merge_groups") or [])
+            if reviewed
+            else 0
+        )
         if merged:
             applied.append(f"{tr('归并 ')}{merged}{tr(' 个视频族')}")
         self.append_log(

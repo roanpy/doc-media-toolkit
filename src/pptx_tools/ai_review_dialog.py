@@ -86,7 +86,9 @@ class AISuggestionDialog(QDialog):
         close.clicked.connect(self.reject)
         apply_button = QPushButton(tr("应用勾选字段"))
         apply_button.setObjectName("primaryAction")
-        apply_button.setEnabled(bool(self.checks))
+        if groups and not self.checks:
+            apply_button.setText(tr("核对与归并"))
+        apply_button.setEnabled(bool(self.checks or groups))
         apply_button.clicked.connect(self.accept)
         actions.addWidget(close)
         actions.addWidget(apply_button)
