@@ -242,3 +242,6 @@ jobs:
           name: release-${{ matrix.platform }}
           path: release-assets/*
           if-no-files-found: error
+          # Candidate packages are large (100-250 MiB each) and can be rebuilt
+          # on demand, so keep them just long enough to download and review.
+          retention-days: 7

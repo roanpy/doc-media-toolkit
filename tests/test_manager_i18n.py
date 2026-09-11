@@ -2,12 +2,41 @@
 
 from __future__ import annotations
 
+import ast
 import os
 import unittest
+from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from pptx_tools import manager_i18n
+
+
+ROOT = Path(__file__).resolve().parents[1]
+GUI_MODULES = (
+    ROOT / "src" / "pptx_tools" / "video_manager_gui.py",
+    ROOT / "src" / "pptx_tools" / "image_manager_gui.py",
+)
+
+
+def _literal_tr_keys(path: Path) -> list[tuple[int, str]]:
+    """Return every literal Chinese string passed directly to ``tr()``."""
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    found: list[tuple[int, str]] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not node.args:
+            continue
+        func = node.func
+        if not isinstance(func, ast.Name) or func.id != "tr":
+            continue
+        argument = node.args[0]
+        if not isinstance(argument, ast.Constant) or not isinstance(
+            argument.value, str
+        ):
+            continue
+        if any("\u4e00" <= char <= "\u9fff" for char in argument.value):
+            found.append((node.lineno, argument.value))
+    return found
 
 
 class ManagerI18nTest(unittest.TestCase):
@@ -27,6 +56,18 @@ class ManagerI18nTest(unittest.TestCase):
     def test_empty_string(self) -> None:
         manager_i18n.set_language("en")
         self.assertEqual(manager_i18n.tr(""), "")
+
+    def test_every_library_literal_has_an_english_translation(self) -> None:
+        untranslated: list[str] = []
+        for path in GUI_MODULES:
+            for line, value in _literal_tr_keys(path):
+                if value not in manager_i18n.TRANSLATIONS:
+                    untranslated.append(f"{path.name}:{line}: {value!r}")
+        self.assertEqual(
+            untranslated,
+            [],
+            "Library UI literals need an English entry in manager_i18n.TRANSLATIONS.",
+        )
 
     def test_windows_smoke_instantiate_both_languages(self) -> None:
         from PySide6.QtWidgets import QApplication

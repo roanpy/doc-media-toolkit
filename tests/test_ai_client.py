@@ -325,6 +325,27 @@ class AIClientTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(AIClientError):
                 OpenAICompatibleClient(AIConfig(value, "model"))
 
+    def test_plaintext_http_is_limited_to_loopback_hosts(self) -> None:
+        for value in (
+            "http://localhost:11434/v1",
+            "http://127.0.0.1:8000/v1",
+            "http://[::1]:8080/v1",
+        ):
+            with self.subTest(value=value):
+                OpenAICompatibleClient(AIConfig(value, "model", "secret"))
+
+    def test_remote_plaintext_http_is_rejected_before_any_request(self) -> None:
+        for value in (
+            "http://api.example.test/v1",
+            "http://192.168.1.10:11434/v1",
+            "http://10.0.0.5/v1",
+        ):
+            with (
+                self.subTest(value=value),
+                self.assertRaisesRegex(AIClientError, "HTTPS"),
+            ):
+                OpenAICompatibleClient(AIConfig(value, "model", "secret"))
+
     def test_response_size_is_bounded(self) -> None:
         response = FakeResponse(text_completion("x" * MAX_RESPONSE_BYTES))
         with patch("urllib.request.urlopen", return_value=response):

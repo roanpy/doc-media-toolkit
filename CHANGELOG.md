@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+
+- Reject remote plaintext-HTTP AI endpoints before any request is sent. HTTP is
+  now limited to loopback hosts (`localhost`, `127.0.0.1`, `::1`) because the API
+  key and preview images travel in the request body.
+
 ### Fixed
 
 - Verify stored image bytes before duplicate reuse or adopting an existing target;
@@ -14,11 +20,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   retaining room for video metadata and hash suffixes.
 - Stop both image and video AI review flows when the suggestion dialog is
   dismissed; allow explicit review of merge-only suggestions.
+- Complete the remaining English labels and message fragments in the video and
+  image library workspaces, and fail the suite when a library literal has no
+  translation entry.
 
 ### Changed
 
 - Keep original source names and hash-based identity when cleaning import names;
   existing libraries are not renamed automatically.
+- Bound candidate build artifacts to a 7-day retention period so repeated release
+  dispatches no longer exhaust the account's Actions storage.
+- Remove the superseded `setup_env.sh` bootstrap script, which installed unlocked
+  dependencies outside `uv.lock` and cleared the virtual environment.
 
 ## [0.2.4] - 2026-08-22
 

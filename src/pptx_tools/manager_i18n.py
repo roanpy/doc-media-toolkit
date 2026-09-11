@@ -869,3 +869,22 @@ TRANSLATIONS.update(
         "当前选择：{}。点击切换其他选项。": "Current selection: {}. Click to switch to another option.",
     }
 )
+
+# Message fragments composed with f-strings. ``tests/test_manager_i18n.py``
+# fails if a literal passed to ``tr()`` has no entry here.
+TRANSLATIONS.update(
+    {
+        " 个不在图片库清单中的文件。": " file(s) not in the library manifest.",
+        " 处": " location(s)",
+        " 条指向已不存在 PPTX 的历史输出记录。": (
+            " history output record(s) pointing to missing PPTX files."
+        ),
+        "如果视频库是整体复制到本机的，通常只是文件时间戳变化，内容并未改动。\n": (
+            "If the library was copied to this machine as a whole, usually only "
+            "file timestamps changed, not the content.\n"
+        ),
+        "来源：": "Source: ",
+        "点击从当前工作流移除": "Click to remove from the current workflow",
+        "”移到待清理目录。": '" to the cleanup folder.',
+    }
+)

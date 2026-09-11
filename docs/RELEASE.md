@@ -20,6 +20,11 @@ Recommended candidate package names:
 - `FFMPEG-<platform>.txt`
 - `Doc-Media-Toolkit-FFmpeg-8.1.2-<platform>-corresponding-source.tar.gz`
 
+Candidate artifacts are uploaded with `retention-days: 7`. Each platform package
+is 100-250 MiB and can be rebuilt from the same commit on demand; an unbounded
+retention period is what previously exhausted the account's Actions storage and
+blocked further dispatches.
+
 ## Build Commands
 
 The source-pinned FFmpeg build requires a C toolchain, `make`, `curl`, `tar`, and
