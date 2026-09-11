@@ -173,6 +173,8 @@ class OpenSourceReadinessTest(unittest.TestCase):
                     'python -m pip install -e ".[dev,build]"',
                     path.read_text(encoding="utf-8"),
                 )
+        # The unlocked pip bootstrap script was removed with its documentation.
+        self.assertFalse((ROOT / "setup_env.sh").exists())
 
     def test_private_public_safety_denylist_is_literal_and_not_echoed(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -281,6 +283,9 @@ class OpenSourceReadinessTest(unittest.TestCase):
         self.assertNotIn("GyanD/codexffmpeg", workflow)
         self.assertIn('$lines -join "`n"', workflow)
         self.assertIn("[IO.File]::WriteAllText", workflow)
+        # Candidate packages are large; unbounded retention is what exhausted
+        # the account's Actions storage.
+        self.assertIn("retention-days: 7", workflow)
 
         ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         self.assertIn("uv export --locked --extra dev", ci)

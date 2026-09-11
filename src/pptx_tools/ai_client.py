@@ -21,6 +21,15 @@ MAX_CONTEXT_CHARS = 12_000
 MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 TRANSIENT_RETRIES = 2
 
+# Plaintext HTTP is only acceptable when the traffic never leaves this machine,
+# because the API key and any previews travel in the request body.
+_LOOPBACK_HOSTS = frozenset({"localhost", "::1", "0:0:0:0:0:0:0:1"})
+
+
+def _is_loopback_host(hostname: str) -> bool:
+    host = hostname.strip().strip("[]").lower().rstrip(".")
+    return host in _LOOPBACK_HOSTS or host.startswith("127.")
+
 
 @dataclass(frozen=True)
 class AIConfig:
@@ -189,6 +198,10 @@ class OpenAICompatibleClient:
             raise AIClientError("AI Base URL 格式无效。") from exc
         if parsed_url.scheme not in {"http", "https"} or not hostname:
             raise AIClientError("AI Base URL 必须是有效的 HTTP 或 HTTPS 地址。")
+        if parsed_url.scheme == "http" and not _is_loopback_host(hostname):
+            raise AIClientError(
+                "远程 AI 地址必须使用 HTTPS；明文 HTTP 仅允许本机 localhost 地址。"
+            )
         if parsed_url.username or parsed_url.password:
             raise AIClientError("AI Base URL 不得包含用户名或密码。")
         if parsed_url.params or parsed_url.query or parsed_url.fragment:
